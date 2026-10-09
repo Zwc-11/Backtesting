@@ -263,3 +263,18 @@ def test_session_flatten_for_calendar_books() -> None:
     (trade,) = rt.ledger.trades
     assert trade.exit_reason == "session_flatten"
     assert trade.exit_time == close - timedelta(minutes=1)
+
+
+def test_minute_groups_survive_chunk_boundaries() -> None:
+    from xasset.lab.backtest import minutes
+    from xasset.lab.bars import to_frame
+
+    rows = []
+    for minute in range(5):
+        end = DAY + timedelta(minutes=minute + 1)
+        rows += [bar(symbol, end, 1, 1, 1, 1) for symbol in ("A", "B", "C")]
+    frame = to_frame(rows)
+    whole = [(end, [b.symbol for b in batch]) for end, batch in minutes(frame)]
+    for chunk in (1, 2, 4, 7, 100):
+        assert [(end, [b.symbol for b in batch]) for end, batch in minutes(frame, chunk)] == whole
+    assert len(whole) == 5 and all(len(symbols) == 3 for _, symbols in whole)

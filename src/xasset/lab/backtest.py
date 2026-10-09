@@ -71,43 +71,50 @@ def load_month(
     return pl.concat(frames).sort("ts_end", "symbol")
 
 
-def minutes(frame: pl.DataFrame) -> Iterator[tuple[datetime, list[FlowBar]]]:
-    columns = {name: frame[name].to_list() for name in FLOW_SCHEMA.names()}
-    count = frame.height
+def minutes(frame: pl.DataFrame, chunk: int = 50_000) -> Iterator[tuple[datetime, list[FlowBar]]]:
+    """Bars grouped by minute (the frame must be sorted by ``ts_end``).
+
+    Rows are converted to Python objects ``chunk`` rows at a time, so a month of
+    minute bars for dozens of instruments never sits in memory as Python lists.
+    """
+    names = FLOW_SCHEMA.names()
     current: datetime | None = None
     batch: list[FlowBar] = []
-    for row in range(count):
-        end = columns["ts_end"][row]
-        if current is not None and end != current:
-            yield current, batch
-            batch = []
-        current = end
-        batch.append(
-            FlowBar(
-                symbol=columns["symbol"][row],
-                end=end,
-                available_at=columns["available_at"][row],
-                open=columns["open"][row],
-                high=columns["high"][row],
-                low=columns["low"][row],
-                close=columns["close"][row],
-                volume=columns["volume"][row] or 0.0,
-                notional=columns["notional"][row] or 0.0,
-                trades=columns["trades"][row],
-                buy_notional=columns["buy_notional"][row],
-                sell_notional=columns["sell_notional"][row],
-                unclassified_notional=columns["unclassified_notional"][row],
-                mid_open=columns["mid_open"][row],
-                mid_high=columns["mid_high"][row],
-                mid_low=columns["mid_low"][row],
-                mid_close=columns["mid_close"][row],
-                bid_close=columns["bid_close"][row],
-                ask_close=columns["ask_close"][row],
-                spread_rel=columns["spread_rel"][row],
-                quote_age=columns["quote_age"][row],
-                source=columns["source"][row],
+    for offset in range(0, frame.height, chunk):
+        piece = frame.slice(offset, chunk)
+        columns = {name: piece[name].to_list() for name in names}
+        for row in range(piece.height):
+            end = columns["ts_end"][row]
+            if current is not None and end != current:
+                yield current, batch
+                batch = []
+            current = end
+            batch.append(
+                FlowBar(
+                    symbol=columns["symbol"][row],
+                    end=end,
+                    available_at=columns["available_at"][row],
+                    open=columns["open"][row],
+                    high=columns["high"][row],
+                    low=columns["low"][row],
+                    close=columns["close"][row],
+                    volume=columns["volume"][row] or 0.0,
+                    notional=columns["notional"][row] or 0.0,
+                    trades=columns["trades"][row],
+                    buy_notional=columns["buy_notional"][row],
+                    sell_notional=columns["sell_notional"][row],
+                    unclassified_notional=columns["unclassified_notional"][row],
+                    mid_open=columns["mid_open"][row],
+                    mid_high=columns["mid_high"][row],
+                    mid_low=columns["mid_low"][row],
+                    mid_close=columns["mid_close"][row],
+                    bid_close=columns["bid_close"][row],
+                    ask_close=columns["ask_close"][row],
+                    spread_rel=columns["spread_rel"][row],
+                    quote_age=columns["quote_age"][row],
+                    source=columns["source"][row],
+                )
             )
-        )
     if current is not None:
         yield current, batch
 
