@@ -23,6 +23,11 @@ def main() -> None:
     monitor = commands.add_parser("monitor")
     monitor.add_argument("--config", type=Path, default=Path("config/monitor.yaml"))
     monitor.add_argument("--once", action="store_true")
+    desk = commands.add_parser("paper", help="Run the live paper desk (no orders are sent)")
+    desk.add_argument("--config", type=Path, default=Path("config/lab/paper-crypto.yaml"))
+    desk.add_argument(
+        "--minutes", type=float, default=None, help="Stop after this many minutes (testing)"
+    )
     web = commands.add_parser("serve")
     web.add_argument("--host", default="127.0.0.1")
     web.add_argument("--port", type=int, default=8000)
@@ -46,6 +51,10 @@ def main() -> None:
         )
     elif args.command == "monitor":
         serve(args.data_dir, load(args.config), args.once)
+    elif args.command == "paper":
+        from xasset.lab.live.desk import run_desk
+
+        run_desk(args.data_dir, args.config, args.minutes)
     elif args.command == "reconcile-trades":
         import hashlib
 

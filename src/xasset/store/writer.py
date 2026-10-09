@@ -1,9 +1,13 @@
-"""Single-writer, atomic file replacement on local POSIX filesystems."""
+"""Single-writer locks and atomic file replacement on local filesystems.
 
-import fcntl
+POSIX uses ``flock``; Windows uses ``msvcrt.locking`` on the first byte of the lock
+file. Both are non-blocking exclusive locks released when the context exits.
+"""
+
 import hashlib
 import json
 import os
+import sys
 import tempfile
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -11,6 +15,11 @@ from pathlib import Path
 from typing import Any
 
 import polars as pl
+
+if sys.platform == "win32":  # pragma: no cover - exercised on Windows hosts
+    import msvcrt
+else:
+    import fcntl
 
 from xasset.config import Instrument, Source
 from xasset.qc.checks import check_bars
@@ -20,15 +29,23 @@ from xasset.store.schema import empty_bars, read_partition
 @contextmanager
 def writer_lock(root: Path) -> Iterator[None]:
     root.mkdir(parents=True, exist_ok=True)
-    with (root / ".writer.lock").open("a") as handle:
+    with (root / ".writer.lock").open("a+") as handle:
         try:
-            fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except BlockingIOError as exc:
+            if sys.platform == "win32":  # pragma: no cover
+                handle.seek(0)
+                msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+            else:
+                fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except (BlockingIOError, PermissionError, OSError) as exc:
             raise RuntimeError("Another recorder owns this data directory") from exc
         try:
             yield
         finally:
-            fcntl.flock(handle, fcntl.LOCK_UN)
+            if sys.platform == "win32":  # pragma: no cover
+                handle.seek(0)
+                msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+            else:
+                fcntl.flock(handle, fcntl.LOCK_UN)
 
 
 @contextmanager
@@ -42,11 +59,12 @@ def atomic_path(target: Path) -> Iterator[Path]:
         with temporary.open("rb") as handle:
             os.fsync(handle.fileno())
         os.replace(temporary, target)
-        directory_fd = os.open(target.parent, os.O_DIRECTORY)
-        try:
-            os.fsync(directory_fd)
-        finally:
-            os.close(directory_fd)
+        if sys.platform != "win32":  # Windows cannot open directories for fsync.
+            directory_fd = os.open(target.parent, os.O_DIRECTORY)
+            try:
+                os.fsync(directory_fd)
+            finally:
+                os.close(directory_fd)
     finally:
         temporary.unlink(missing_ok=True)
 

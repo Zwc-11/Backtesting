@@ -2,9 +2,8 @@
 
 ## Decision and scope
 
-On October 8, 2026, the user replaced the original Hindsight integration with
-an engine owned by this project and confirmed the original benchmark inputs
-are unavailable. `PROJECT_PLAN.txt` remains an unchanged historical source;
+On October 8, 2026, the project adopted an engine of its own as the backtest
+core and confirmed the original benchmark inputs are unavailable. `PROJECT_PLAN.txt` remains an unchanged historical source;
 this decision supersedes its engine and benchmark requirements.
 
 See [ENGINE_VALIDATION.md](ENGINE_VALIDATION.md) for the initial engine checkpoint

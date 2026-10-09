@@ -11,6 +11,8 @@ from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconn
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 
+from xasset.monitor.lab_api import mount as mount_lab
+
 
 def read_json(path: Path, default: Any) -> Any:
     return json.loads(path.read_text()) if path.exists() else default
@@ -33,11 +35,15 @@ def app(root: Path) -> FastAPI:
             if not authorized(request.cookies.get("xasset_session") or bearer):
                 return JSONResponse({"error": "Authentication required"}, status_code=401)
         response = await call_next(request)
-        response.headers["Cache-Control"] = "no-store"
+        if request.url.path.startswith("/assets/fonts/"):
+            response.headers["Cache-Control"] = "public, max-age=604800, immutable"
+        else:
+            response.headers["Cache-Control"] = "no-store"
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; script-src 'self'; style-src 'self'; "
-            "img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'"
+            "img-src 'self' data:; font-src 'self'; connect-src 'self'; "
+            "frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
         )
         return response
 
@@ -68,6 +74,17 @@ def app(root: Path) -> FastAPI:
         if name not in {"app.js", "style.css"}:
             raise HTTPException(404)
         return FileResponse(web / name)
+
+    fonts = {path.name for path in (web / "fonts").glob("*.woff2")}
+
+    @api.get("/assets/fonts/{name}")
+    def font(name: str) -> FileResponse:
+        if name not in fonts:
+            raise HTTPException(404)
+        response = FileResponse(web / "fonts" / name, media_type="font/woff2")
+        return response
+
+    mount_lab(api, root)
 
     @api.get("/healthz")
     def liveness() -> dict[str, bool]:

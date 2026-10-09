@@ -1,0 +1,18 @@
+# Live paper desk: public Binance spot and Hyperliquid feeds, simulated fills only.
+# Run with:  xasset-app paper --config config/lab/paper-crypto.yaml
+id: crypto-paper
+universe: crypto-paper-universe.yaml
+# Calendar days of history replayed before trading (60 sessions feed the lead-lag
+# stability screen of strategy 8; the other strategies need 20).
+warmup_days: 62
+books:
+  # Primary handbook versions on bid/ask midpoints. Calibrated only from bars this
+  # desk records, so setups start arming after 20 recorded UTC-day sessions.
+  - book: crypto-paper-quote.yaml
+    basis: mid
+    warmup: recorded
+  # The archive (trade-bar) variants, primed from Binance kline archives so they trade
+  # from the first live minute. Fills still use live bid/ask quotes.
+  - book: crypto-paper-trade.yaml
+    basis: trade
+    warmup: archive

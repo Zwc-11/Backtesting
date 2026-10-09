@@ -34,7 +34,7 @@ authorized source. Fixture tests cannot satisfy these evidence requirements.
 
 ## Phase 2 — native engine and controls implemented; independent acceptance open
 
-The October 8 decision replaces Hindsight and the unavailable prior benchmark.
+Backtests run on the project's own engine; the unavailable prior benchmark is retired.
 Native execution has exact fill, cost, cash/lot and causal-invariance fixtures.
 Immutable experiment/grid/universe/cost registration, cumulative trial penalties,
 last-20% vaults, purged/embargoed selection, doubled costs, daily statistics,
