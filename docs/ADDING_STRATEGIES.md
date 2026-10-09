@@ -15,10 +15,11 @@ idea is written.
    ```python
    from xasset.lab.strategy import Candidate, Requirements, Setup, Strategy
 
+
    class MyIdea(Strategy):
-       id = "h11"                       # stable ID: used in books, ledgers, the UI
+       id = "h11"  # stable ID: used in books, ledgers, the UI
        title = "One-line name"
-       direction = 1                    # -1 for shorts (perpetuals only)
+       direction = 1  # -1 for shorts (perpetuals only)
        kinds = ("spot", "equity", "etf")
        time_exit_minutes = 60
        requires = Requirements(quotes=True, flow=True, notes="What the data must contain.")
