@@ -35,6 +35,12 @@ class SellingBursts(Strategy):
         notes="Aggressor-labelled trades, quote paths and quoted spreads for every block.",
     )
     require_spread = True
+    levels = {
+        "A1": ("asset", "burst 1 start"),
+        "low1": ("asset", "burst 1 low"),
+        "threshold": ("asset", "final recovery threshold"),
+        "stop_low": ("asset", "burst 3 low"),
+    }
 
     def selling_burst(self, symbol: str, block: Block, sigma2: float) -> bool:
         q10 = self.market.quantile(symbol, "Q2", block.end, 0.10)
@@ -66,6 +72,11 @@ class SellingBursts(Strategy):
             return None
         block = block_at(self.market.tapes[symbol], i)
         if block is None:
+            return None
+        # Necessary parts of the selling-burst rule that need no calibration.
+        if block.signed_flow >= 0 or block.signed_flow / block.notional > -0.20:
+            return None
+        if block.log_return >= 0:
             return None
         sigma2 = self.market.sigma(symbol, 2, i, block.start_mid)
         sigma10 = self.market.sigma(symbol, 10, i, block.start_mid)
@@ -177,7 +188,15 @@ class SellingBursts(Strategy):
             "stop_low": stop_low,
             "threshold": float(burst3["A"]) * math.exp(-0.10 * setup.anchors["sigma2"]),
         }
-        self.transition(setup, "RECOVERED_3", "recovered", T=t[2], D=[b["D"] for b in s["bursts"]])
+        self.transition(
+            setup,
+            "RECOVERED_3",
+            "recovered",
+            T=t[2],
+            D=[b["D"] for b in s["bursts"]],
+            threshold=s["final"]["threshold"],
+            stop_low=stop_low,
+        )
         return self.await_breakout(setup)
 
     def await_breakout(self, setup: Setup) -> Candidate | None:

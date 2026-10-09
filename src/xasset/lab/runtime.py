@@ -19,6 +19,7 @@ from xasset.lab.bars import MINUTE, Basis, FlowBar
 from xasset.lab.execution import Accounting, Order
 from xasset.lab.ledger import Ledger, iso
 from xasset.lab.market import Market
+from xasset.lab.mirror import MirrorStrategy, mirror_bar, real_candidate
 from xasset.lab.portfolio import Portfolio, Position, cost_side
 from xasset.lab.strategy import Candidate, Guard, Strategy
 from xasset.lab.universe import Book, Universe
@@ -50,9 +51,21 @@ class Runtime:
         self.settings = settings
         self.ledger = ledger or Ledger()
         self.market = Market(universe, book, settings.basis)
+        # Mirror strategies read the inverted market (xasset.lab.mirror).
+        self.mirror_market: Market | None = None
+        if any(issubclass(cls, MirrorStrategy) for cls in strategy_types):
+            self.mirror_market = Market(universe, book, settings.basis, mirrored=True)
         order = {sid: rank for rank, sid in enumerate(book.strategies)}
+
+        def build(cls: type[Strategy]) -> Strategy:
+            market = self.market
+            if issubclass(cls, MirrorStrategy):
+                assert self.mirror_market is not None
+                market = self.mirror_market
+            return cls(market, self.ledger, book, universe)
+
         self.strategies = sorted(
-            (cls(self.market, self.ledger, book, universe) for cls in strategy_types),
+            (build(cls) for cls in strategy_types),
             key=lambda s: order.get(s.id, len(order)),
         )
         self.rank = {s.id: order.get(s.id, len(order)) for s in self.strategies}
@@ -105,18 +118,34 @@ class Runtime:
             strategy.release(setup, "cancelled", reason)
 
     # --- main loop ----------------------------------------------------------------
-    def step(self, end: datetime, bars: Sequence[FlowBar], process: bool = True) -> list[Order]:
-        """Process one completed minute. Returns the orders submitted at this minute."""
+    def advance(self, end: datetime) -> bool:
+        """Move every market to the minute ending at ``end``; roll strategy sessions."""
         previous = self.market.session
         if not self.market.advance(end):
-            return []
+            return False
+        if self.mirror_market is not None:
+            self.mirror_market.advance(end)
         if previous is not None and self.market.session is not previous:
             for strategy in self.strategies:
                 strategy.now = end
                 strategy.on_session()
+        return True
+
+    def add_bars(self, end: datetime, bars: Sequence[FlowBar]) -> dict[str, FlowBar]:
+        """Add this minute's bars (one per instrument) to every market."""
         current = {bar.symbol: bar for bar in bars if bar.end == end}
         for bar in current.values():
             self.market.add(bar)
+        if self.mirror_market is not None:
+            for bar in current.values():
+                self.mirror_market.add(mirror_bar(bar))
+        return current
+
+    def step(self, end: datetime, bars: Sequence[FlowBar], process: bool = True) -> list[Order]:
+        """Process one completed minute. Returns the orders submitted at this minute."""
+        if not self.advance(end):
+            return []
+        current = self.add_bars(end, bars)
         if process and hasattr(self.broker, "on_bars"):
             self.broker.on_bars(end, current)  # type: ignore[union-attr]
         if not current:
@@ -124,8 +153,23 @@ class Runtime:
         available = max(bar.available_at for bar in current.values())
         decided = available + timedelta(milliseconds=self.book.execution.decision_latency_ms)
         candidates: list[tuple[int, Candidate]] = []
+        context: dict[str, float | None] | None = None
         for strategy in self.strategies:
             for candidate in strategy.evaluate(decided):
+                if context is None:
+                    context = self.market.context(self.market.minute)
+                # The wider market at the decision, on the real scale, for every signal.
+                self.ledger.event(
+                    decided,
+                    strategy.id,
+                    candidate.symbol,
+                    candidate.setup.id,
+                    "context",
+                    candidate.setup.state,
+                    **context,
+                )
+                if isinstance(strategy, MirrorStrategy):
+                    candidate = real_candidate(candidate)
                 candidates.append((self.rank[strategy.id], candidate))
         candidates.sort(key=lambda item: (item[0], item[1].signal_end, item[1].symbol))
         return [o for o in (self.submit(rank, c, decided) for rank, c in candidates) if o]
