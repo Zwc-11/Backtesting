@@ -135,6 +135,10 @@ src/xasset/web/                             dashboard (index.html, app.js, style
 ## Replay commands
 
 ```bash
+# Every archive the crypto universe needs (28 spot coins, 12 USD-M perpetuals, funding):
+uv run --frozen xasset lab ingest-universe config/lab/crypto-universe.yaml \
+  --start 2026-01-01T00:00Z --end 2026-10-01T00:00Z
+# Or symbol by symbol:
 uv run --frozen xasset lab ingest --market spot --symbols BTCUSDT ETHUSDT \
   --start 2026-01-01T00:00Z --end 2026-10-01T00:00Z
 uv run --frozen xasset lab ingest --market um --symbols BTCUSDT --funding \
