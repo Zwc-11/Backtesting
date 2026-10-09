@@ -7,10 +7,8 @@ import shutil
 import tarfile
 import tempfile
 from contextlib import ExitStack
-from pathlib import Path, PurePosixPath
+from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any
-
-from xasset.store.writer import atomic_path, write_json, writer_lock
 
 
 def checksum(path: Path) -> str:
@@ -33,7 +31,14 @@ def verify(archive: Path) -> dict[str, Any]:
             if (
                 not member.isfile()
                 or name.is_absolute()
+                or PureWindowsPath(member.name).drive
+                or "\\" in member.name
+                or ":" in member.name
                 or ".." in name.parts
+                or any(
+                    PureWindowsPath(part).is_reserved() or part.endswith((".", " "))
+                    for part in name.parts
+                )
                 or member.name in seen
                 or member.name not in manifest["files"]
             ):
@@ -50,6 +55,10 @@ def verify(archive: Path) -> dict[str, Any]:
 
 
 def backup(root: Path, destination: Path) -> dict[str, Any]:
+    # Only backup creation needs the POSIX application locks. Verification and
+    # restore use the standard library and can run on Windows without installing xasset.
+    from xasset.store.writer import atomic_path, write_json, writer_lock
+
     root, destination = root.resolve(), destination.resolve()
     if not root.is_dir():
         raise ValueError("Data directory does not exist")
@@ -117,6 +126,39 @@ def restore(archive: Path, destination: Path) -> dict[str, Any]:
     return {"path": str(destination), "files": len(manifest["files"]), "verified": True}
 
 
+def restore_checkpoint(checkpoint: Path, destination: Path) -> dict[str, Any]:
+    """Reassemble and verify a checked-in checkpoint without shell-specific commands."""
+    if destination.exists():
+        raise ValueError("Restore requires a new empty destination path")
+    manifests = list(checkpoint.glob("*.tar.gz.manifest.json"))
+    if len(manifests) != 1:
+        raise ValueError("Expected exactly one backup manifest in the checkpoint")
+    archive_name = manifests[0].name.removesuffix(".manifest.json")
+    hashes = {}
+    for line in (checkpoint / "SHA256SUMS").read_text().splitlines():
+        expected, name = line.split("  ", 1)
+        if name.startswith(archive_name + ".part-"):
+            if Path(name).name != name or "\\" in name or ":" in name:
+                raise ValueError("Invalid checkpoint part name")
+            hashes[name] = expected
+    names = sorted(hashes)
+    if not names or names != [f"{archive_name}.part-{i:02d}" for i in range(len(names))]:
+        raise ValueError("Checkpoint parts must be numbered consecutively from zero")
+    with tempfile.TemporaryDirectory(prefix="xasset-checkpoint-") as temporary:
+        archive = Path(temporary) / archive_name
+        with archive.open("wb") as output:
+            for name in names:
+                digest = hashlib.sha256()
+                with (checkpoint / name).open("rb") as stream:
+                    while chunk := stream.read(1024 * 1024):
+                        digest.update(chunk)
+                        output.write(chunk)
+                if digest.hexdigest() != hashes[name]:
+                    raise ValueError(f"Checkpoint part checksum mismatch: {name}")
+        shutil.copyfile(manifests[0], manifest_path(archive))
+        return restore(archive, destination)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
@@ -128,11 +170,16 @@ if __name__ == "__main__":
     recover = commands.add_parser("restore")
     recover.add_argument("archive", type=Path)
     recover.add_argument("destination", type=Path)
+    checkpoint = commands.add_parser("restore-checkpoint")
+    checkpoint.add_argument("checkpoint", type=Path)
+    checkpoint.add_argument("destination", type=Path)
     args = parser.parse_args()
     if args.command == "create":
         result = backup(args.data_dir, args.archive)
     elif args.command == "restore":
         result = restore(args.archive, args.destination)
+    elif args.command == "restore-checkpoint":
+        result = restore_checkpoint(args.checkpoint, args.destination)
     else:
         result = {"verified": bool(verify(args.archive))}
     print(json.dumps(result, indent=2))

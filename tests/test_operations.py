@@ -117,3 +117,63 @@ def test_backup_refuses_unsafe_archive_members_even_with_matching_manifest(tmp_p
     with pytest.raises(ValueError, match="Unsafe"):
         backup_module.restore(archive, tmp_path / "restored")
     assert not (tmp_path / "escape").exists()
+
+
+@pytest.mark.parametrize("name", ["C:escape", "C:/escape", "safe\\..\\escape", "NUL", "safe./file"])
+def test_restore_rejects_windows_unsafe_names_on_every_platform(tmp_path, name):
+    import io
+
+    archive = tmp_path / "unsafe.tar.gz"
+    with tarfile.open(archive, "w:gz") as bundle:
+        member = tarfile.TarInfo(name)
+        member.size = 4
+        bundle.addfile(member, io.BytesIO(b"test"))
+    backup_module.manifest_path(archive).write_text(
+        json.dumps(
+            {"archive_sha256": backup_module.checksum(archive), "files": {name: "arbitrary"}}
+        )
+    )
+    with pytest.raises(ValueError, match="Unsafe"):
+        backup_module.restore(archive, tmp_path / "restored")
+
+
+def test_checkpoint_restores_without_project_dependencies_and_detects_bad_parts(tmp_path):
+    import subprocess
+    import sys
+
+    root, checkpoint = tmp_path / "data", tmp_path / "checkpoint"
+    root.mkdir()
+    checkpoint.mkdir()
+    (root / "input.txt").write_text("verified observation")
+    archive = checkpoint / "backup.tar.gz"
+    backup_module.backup(root, archive)
+    content = archive.read_bytes()
+    split = len(content) // 2
+    parts = [checkpoint / f"backup.tar.gz.part-{i:02d}" for i in range(2)]
+    for part, body in zip(parts, [content[:split], content[split:]], strict=True):
+        part.write_bytes(body)
+    (checkpoint / "SHA256SUMS").write_text(
+        "".join(f"{backup_module.checksum(part)}  {part.name}\n" for part in parts)
+    )
+    destination = tmp_path / "restored"
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-S",
+            "scripts/backup.py",
+            "restore-checkpoint",
+            str(checkpoint),
+            str(destination),
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    assert json.loads(result.stdout)["verified"]
+    assert (destination / "input.txt").read_text() == "verified observation"
+    with pytest.raises(ValueError, match="new empty"):
+        backup_module.restore_checkpoint(checkpoint, destination)
+    parts[0].write_bytes(b"corruption")
+    with pytest.raises(ValueError, match="part checksum"):
+        backup_module.restore_checkpoint(checkpoint, tmp_path / "bad-restored")
+    assert not (tmp_path / "bad-restored").exists()

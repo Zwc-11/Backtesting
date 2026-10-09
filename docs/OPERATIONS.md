@@ -140,6 +140,15 @@ Restore requires a new destination and verifies contents before publishing it.
 Point a stopped installation at that restored directory, run its health checks,
 then restart services. Move backups off the development workspace for durability.
 
+Verification and restore also work with standalone Python 3.12 on Windows;
+the backup creation command and application writers use POSIX locking. To restore
+the saved Git checkpoint without installing application dependencies, run
+`py -3.12 scripts\backup.py restore-checkpoint artifacts\checkpoint-20261009 data`
+from the clone's root. This joins the archive parts in a temporary directory,
+checks their hashes, restores into a new destination and removes the temporary
+archive. Checkpoint files retain their original bytes on Windows via
+`.gitattributes`, so automatic line-ending conversion cannot invalidate hashes.
+
 ## Conditional reconciliation and paper observation
 
 `xasset-app reconcile-trades native.json external.json --output report.json`

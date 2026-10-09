@@ -29,6 +29,14 @@ Restore requires that `data` does not already exist. The backup contains the
 research registry, raw observations, reports, map, live captures and archived
 research implementation. Credentials and dependency caches are excluded.
 
+On Windows, the restore command needs only Python 3.12; it automatically joins
+the archive parts and verifies every checksum. In PowerShell, after cloning:
+
+```powershell
+Set-Location D:\Backtesting
+py -3.12 scripts\backup.py restore-checkpoint artifacts\checkpoint-20261009 data
+```
+
 ## Implemented
 
 - Yahoo recorder, checksum-verified Binance spot/USD-M monthly archives,

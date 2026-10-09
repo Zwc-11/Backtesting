@@ -1,0 +1,2 @@
+# Preserve checkpoint checksums when cloning on Windows with core.autocrlf=true.
+artifacts/** -text
