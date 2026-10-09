@@ -1,0 +1,31 @@
+# Historical replay on Alpaca SIP regular-session trade bars (no quotes, no aggressor
+# labels). Flow-dependent strategies cannot evaluate here; strategy 7 is excluded
+# because SIP bars lack trade VWAP and a typical-price VWAP is a different statistic.
+id: us-archive
+universe: us-universe.yaml
+strategies: [h01, h08]
+costs:
+  us_etf:
+    half_spread_bps: 1.0
+    impact_bps: 1.0
+    fee_bps: 0.0
+    fee_per_unit: 0.005
+    minimum_fee: 1.0
+    evidence: "IBKR Pro fixed USD 0.005/share, USD 1 minimum; spread and impact are uncalibrated."
+  us_stock:
+    half_spread_bps: 2.0
+    impact_bps: 2.0
+    fee_bps: 0.0
+    fee_per_unit: 0.005
+    minimum_fee: 1.0
+    evidence: "IBKR Pro fixed USD 0.005/share, USD 1 minimum; spread and impact are uncalibrated."
+limits:
+  initial_nav: 100000
+execution:
+  decision_latency_ms: 250
+  transport_latency_ms: 150
+  bar_settlement_ms: 1500
+  cooldown_minutes: 15
+calibration_sessions: 20
+calibration_half_window: 15
+minimum_reference: 200

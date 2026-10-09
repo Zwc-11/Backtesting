@@ -2,9 +2,9 @@
 
 Data ingestion, quality controls, a **native Python backtesting engine**, a
 registered relationship map and a live observation dashboard
-from the supplied [project plan](docs/PROJECT_PLAN.txt). The October 8 decision
-replaces Hindsight and retires the unavailable benchmark; see
-[research design and commands](docs/RESEARCH.md). No strategy has been accepted.
+from the supplied [project plan](docs/PROJECT_PLAN.txt). Backtests run on the
+project's own engine; see [research design and commands](docs/RESEARCH.md) and the
+[strategy lab and paper desk](docs/LAB.md). No strategy has been accepted.
 
 ## Saved data and checkpoint
 
@@ -35,6 +35,20 @@ the archive parts and verifies every checksum. In PowerShell, after cloning:
 ```powershell
 Set-Location D:\Backtesting
 py -3.12 scripts\backup.py restore-checkpoint artifacts\checkpoint-20261009 data
+```
+
+## Strategy lab and paper desk
+
+The supplied strategy handbook runs as ten state-machine strategies on one causal
+runtime: replayed over Binance and SIP archives (`xasset lab`) and live on a paper
+desk fed by public Binance spot and Hyperliquid quotes (`xasset-app paper`), with
+simulated bid/ask fills and no order routing. The dashboard shows a live state
+board of every strategy on every instrument, open positions, results, registered
+runs and data health. See [docs/LAB.md](docs/LAB.md).
+
+```bash
+uv run --frozen xasset-app paper --config config/lab/paper-crypto.yaml
+uv run --frozen xasset-app serve --host 127.0.0.1 --port 8000
 ```
 
 ## Implemented
