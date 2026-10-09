@@ -81,6 +81,8 @@ def run_summary(run: dict[str, Any]) -> dict[str, Any]:
     return {
         "id": run.get("id"),
         "book": run.get("book"),
+        "kind": run.get("kind", "replay"),
+        "folds": run.get("folds"),
         "phase": run.get("phase"),
         "status": run.get("status"),
         "error": run.get("error"),

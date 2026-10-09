@@ -129,6 +129,15 @@
       <div class="chart" id="run-chart"></div>
       <div class="table-wrap"><table class="data" id="run-strategies"></table></div>
       <p class="note" id="run-note"></p>
+      <section id="run-evidence" class="view" aria-labelledby="run-evidence-title" hidden>
+        <div>
+          <h2 id="run-evidence-title">Does the signal add information?</h2>
+          <p class="note">Each model with the proposed signal is compared out of sample with the same model on the ordinary controls only. Positive values favour the signal; an interval that spans zero is not evidence.</p>
+        </div>
+        <div class="table-wrap"><table class="data" id="run-evidence-table"></table></div>
+        <h2>Walk-forward folds</h2>
+        <div class="table-wrap"><table class="data" id="run-folds"></table></div>
+      </section>
       <section aria-labelledby="run-trades-title">
         <h2 id="run-trades-title">Trades</h2>
         <div class="table-wrap tall"><table class="data" id="run-trades"></table></div>

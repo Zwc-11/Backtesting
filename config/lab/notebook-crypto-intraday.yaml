@@ -1,0 +1,27 @@
+# Notebook strategy 4 (directional recovery clocks) on the 28 Binance spot coins with
+# stored one-minute archives. Daily decisions, one-day holding period.
+id: notebook-crypto-intraday
+description: Directional recovery clocks measured on one-minute Binance spot archives for 28 coins.
+strategies: [n04]
+history_start: 2025-01-01
+start: 2025-04-01
+end: 2026-10-01
+first_test: 2025-10-01
+fold_months: 3
+universe:
+  min_age_days: 90
+  min_liquidity: 5000000
+  top: 100
+  benchmark: BTCUSDT
+  symbols: [BTCUSDT, ETHUSDT, SOLUSDT, XRPUSDT, BNBUSDT, DOGEUSDT, SUIUSDT, TRXUSDT, ADAUSDT,
+            LINKUSDT, AVAXUSDT, BCHUSDT, PEPEUSDT, UNIUSDT, ENAUSDT, LTCUSDT, NEARUSDT, TAOUSDT,
+            AAVEUSDT, HBARUSDT, WIFUSDT, DOTUSDT, WLDUSDT, FILUSDT, ICPUSDT, APTUSDT, ARBUSDT,
+            FETUSDT]
+costs:
+  fee_bps: 10
+  tiers: [[10, 3], [30, 6], [100, 12]]
+  evidence: "Binance spot VIP0 taker fee 0.10% per side; spread and impact tiers are uncalibrated assumptions."
+portfolio:
+  initial_nav: 100000
+  max_positions: 10
+  participation: 0.02

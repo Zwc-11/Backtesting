@@ -149,14 +149,14 @@ ENTRIES: list[dict[str, Any]] = [
         "title": "Missing Breakdown",
         "number": 1,
         "priority": True,
-        "idea": "Stocks that repeatedly avoid declines a calibrated model expected.",
-        "assets": "Cross-section vs market/sector",
-        "data": ["intraday candles", "market and sector prices", "multi-session history"],
-        "backtest": [],
+        "idea": "Coins that repeatedly avoid declines a calibrated model expected.",
+        "assets": "Cross-section vs market (BTC and an equal-weight index)",
+        "data": ["daily bars incl. delisted coins", "market prices", "multi-year history"],
+        "backtest": ["notebook-crypto-daily"],
         "paper": [],
-        "blocked": "Model strategy (breakdown-probability model plus a return model) with "
-        "1-5 session horizons; needs several years of history per name for calibration. "
-        "Not implemented in this release.",
+        "note": "Daily bars give the 3-day breakdown window and the five-session return "
+        "model. Breakdown models refit yearly on resolved events only; equities would need "
+        "a delisting-complete daily history.",
     },
     {
         "id": "n02",
@@ -165,11 +165,12 @@ ENTRIES: list[dict[str, Any]] = [
         "number": 2,
         "idea": "A moving before B predicts C beyond A and B separately.",
         "assets": "Three related instruments (multi-asset)",
-        "data": ["synchronized prices across related stocks"],
+        "data": ["synchronized prices across related instruments"],
         "backtest": [],
         "paper": [],
-        "blocked": "Sparse interaction model over thousands of sequences; not implemented "
-        "in this release.",
+        "blocked": "Next in the notebook's own order (after 1, 3, 4 and 8): a sparse "
+        "interaction model over candidate triples restricted in training. The minute and "
+        "daily crypto data are in place; the model is not implemented yet.",
     },
     {
         "id": "n03",
@@ -178,12 +179,12 @@ ENTRIES: list[dict[str, Any]] = [
         "number": 3,
         "priority": True,
         "idea": "More participation in market rallies, less in market selloffs.",
-        "assets": "Stock vs market (multi-asset)",
-        "data": ["years of stock and benchmark returns"],
-        "backtest": [],
+        "assets": "Coin vs market (BTC)",
+        "data": ["years of daily coin and benchmark returns"],
+        "backtest": ["notebook-crypto-daily"],
         "paper": [],
-        "blocked": "Tail-dependence estimates at 10% tails need years of daily data; the "
-        "stored history is 2.5 months (US) and 9 months (crypto). Not implemented.",
+        "note": "Prior-only 10% tails over 365 days; 90-day recent vs 365-day reference "
+        "windows shrunk toward the cross-section.",
     },
     {
         "id": "n04",
@@ -192,11 +193,12 @@ ENTRIES: list[dict[str, Any]] = [
         "number": 4,
         "priority": True,
         "idea": "Drops recover faster than rallies fade, measured in time.",
-        "assets": "Single asset",
-        "data": ["detailed intraday price paths"],
-        "backtest": [],
+        "assets": "Single coin (28 coins with minute archives)",
+        "data": ["one-minute price paths"],
+        "backtest": ["notebook-crypto-intraday"],
         "paper": [],
-        "blocked": "Censored-duration model; not implemented in this release.",
+        "note": "Hourly anchors, two excursion sizes, Kaplan-Meier restricted mean times "
+        "with unfinished excursions censored; one-day holds.",
     },
     {
         "id": "n05",
@@ -208,7 +210,8 @@ ENTRIES: list[dict[str, Any]] = [
         "data": ["several resolutions of price/state data"],
         "backtest": [],
         "paper": [],
-        "blocked": "Transition-operator model; not implemented.",
+        "blocked": "Needs time-of-day ordered transition operators fitted on minute data; "
+        "the data is in place, the model is not implemented yet.",
     },
     {
         "id": "n06",
@@ -220,8 +223,8 @@ ENTRIES: list[dict[str, Any]] = [
         "data": ["order-book updates"],
         "backtest": [],
         "paper": [],
-        "blocked": "Needs full depth updates; only forward recording can supply them. "
-        "Not implemented.",
+        "blocked": "Needs full depth updates (refill times inside a price band). No public "
+        "archive has them; they would have to be recorded forward from depth streams.",
     },
     {
         "id": "n07",
@@ -233,7 +236,8 @@ ENTRIES: list[dict[str, Any]] = [
         "data": ["timestamped trades and quotes"],
         "backtest": [],
         "paper": [],
-        "blocked": "Hawkes model on trade events; not implemented.",
+        "blocked": "A Hawkes model on individual trade events; minute bars are too coarse. "
+        "Binance aggregate-trade archives could supply the events; not implemented.",
     },
     {
         "id": "n08",
@@ -243,11 +247,11 @@ ENTRIES: list[dict[str, Any]] = [
         "priority": True,
         "idea": "A modest rise unusually likely to become a much larger one within five sessions.",
         "assets": "Cross-section",
-        "data": ["price paths", "context features", "large multi-year cross-section"],
-        "backtest": [],
+        "data": ["daily price paths incl. delisted coins", "context features"],
+        "backtest": ["notebook-crypto-daily"],
         "paper": [],
-        "blocked": "Competing-risk classifier for +10%/-4% five-session outcomes; needs a "
-        "broad multi-year cross-section with delisted names. Not implemented.",
+        "note": "Nested touch probabilities (+5% then +10%) and a discrete-time competing-"
+        "risk model for the +10% / -4% / five-session trade.",
     },
     {
         "id": "n09",
@@ -259,7 +263,7 @@ ENTRIES: list[dict[str, Any]] = [
         "data": ["trades", "quotes", "displayed depth"],
         "backtest": [],
         "paper": [],
-        "blocked": "Needs displayed depth history; not implemented.",
+        "blocked": "Needs displayed depth at each visit; only forward recording can supply it.",
     },
     {
         "id": "n10",
@@ -271,18 +275,22 @@ ENTRIES: list[dict[str, Any]] = [
         "data": ["synchronized trade or quote events"],
         "backtest": [],
         "paper": [],
-        "blocked": "Activity-time sparse lag model; not implemented.",
+        "blocked": "Needs event-level trades to build activity clocks; minute bars are too "
+        "coarse. Not implemented.",
     },
 ]
+
+
+NOTEBOOK_IMPLEMENTED = {"n01", "n03", "n04", "n08"}
 
 
 def catalog() -> list[dict[str, Any]]:
     output = []
     for entry in ENTRIES:
-        implemented = entry["id"] in REGISTRY
+        implemented = entry["id"] in REGISTRY or entry["id"] in NOTEBOOK_IMPLEMENTED
         item = dict(entry)
         item["implemented"] = implemented
-        if implemented:
+        if entry["id"] in REGISTRY:
             cls = REGISTRY[entry["id"]]
             item["title"] = cls.title
             item["direction"] = "short" if cls.direction < 0 else "long"
