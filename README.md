@@ -9,17 +9,20 @@ replaces Hindsight and retires the unavailable benchmark; see
 ## Saved data and checkpoint
 
 The [October 9 checkpoint release](https://github.com/Zwc-11/Backtesting/releases/tag/v0.1.0-checkpoint.20261009)
-includes the complete verified data backup, its checksum manifest, built packages,
-verification results and dashboard screenshots. Source, configuration, tests and
-deployment files live in Git; market data and databases are release assets.
+links to the complete verified data backup, its checksum manifest, built packages,
+verification results and dashboard screenshots in
+[`artifacts/checkpoint-20261009`](artifacts/checkpoint-20261009).
+The backup is split into 32 MiB parts to fit GitHub's per-file limit.
 
 To restore the saved data into a fresh clone after `uv sync --locked`:
 
 ```bash
-gh release download v0.1.0-checkpoint.20261009 --repo Zwc-11/Backtesting \
-  --pattern 'xasset-20261009-final.tar.gz*' --dir /tmp/xasset-checkpoint
-uv run --frozen python scripts/backup.py restore \
-  /tmp/xasset-checkpoint/xasset-20261009-final.tar.gz data
+# Verify and reassemble the parts; run from the repository root.
+(cd artifacts/checkpoint-20261009 && sha256sum --check SHA256SUMS)
+cat artifacts/checkpoint-20261009/xasset-20261009-final.tar.gz.part-* \
+  > /tmp/xasset-20261009-final.tar.gz
+cp artifacts/checkpoint-20261009/xasset-20261009-final.tar.gz.manifest.json /tmp/
+uv run --frozen python scripts/backup.py restore /tmp/xasset-20261009-final.tar.gz data
 ```
 
 Restore requires that `data` does not already exist. The backup contains the

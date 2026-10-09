@@ -30,6 +30,9 @@ dependencies = [
 xasset = "xasset.cli:main"
 xasset-app = "xasset.application:main"
 
+[tool.hatch.build.targets.sdist]
+exclude = ["/artifacts"]
+
 [dependency-groups]
 dev = ["mypy>=1.18,<2", "pytest>=8.4,<10", "ruff>=0.14,<1", "types-PyYAML>=6"]
 

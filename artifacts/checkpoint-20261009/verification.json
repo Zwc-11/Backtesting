@@ -1,0 +1,43 @@
+{
+  "tests_passed": 145,
+  "ruff_lint": "passed",
+  "ruff_format": "passed",
+  "mypy": "passed",
+  "browser": {
+    "page_errors": [],
+    "mobile_horizontal_overflow": false,
+    "title": "xasset \u00b7 World monitor",
+    "views_checked": 4,
+    "screenshots": [
+      "dashboard-desktop.png",
+      "dashboard-mobile.png"
+    ]
+  },
+  "container": {
+    "image": "sha256:c821cb91f3f7f4fe3a8c3e50a5cd77557afde3411018ab72762d6487e2bb297d",
+    "compose_valid": true,
+    "container_read_only": true,
+    "run_as": "1000:1000",
+    "authentication_verified": true,
+    "stable_edges": 570,
+    "equity_audits": 29,
+    "campaign_pages": 7,
+    "orders_enabled": false,
+    "healthy": true
+  },
+  "restore": {
+    "files": 1005,
+    "verified": true,
+    "registered_families": 15,
+    "opened_vaults": 0,
+    "declared_trials": 636,
+    "map_cells": 29145,
+    "stable_edges": 570,
+    "temporary_restore_removed_after_check": true
+  },
+  "deployment_status": "not deployed to a persistent host",
+  "phone_delivery": "not enabled or sent",
+  "accepted_strategies": 0,
+  "orders_sent": 0,
+  "remaining_requirements": "See docs/ROADMAP.md and docs/OPERATIONS.md"
+}
