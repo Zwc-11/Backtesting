@@ -13,6 +13,7 @@ import csv
 import hashlib
 import io
 import re
+import threading
 import zipfile
 from collections.abc import Iterator
 from datetime import UTC, datetime, timedelta
@@ -28,6 +29,8 @@ from xasset.store.writer import atomic_path, writer_lock
 
 Market = Literal["spot", "um"]
 BASE = "https://data.binance.vision/data"
+# Downloads may run in threads; writes into the lab store take turns within the process.
+_WRITES = threading.Lock()
 
 
 def month_starts(start: datetime, end: datetime) -> Iterator[datetime]:
@@ -120,24 +123,47 @@ def ingest_klines(
     symbol: str,
     start: datetime,
     end: datetime,
+    only: set[str] | None = None,
+    keep_raw: bool = True,
 ) -> dict[str, object]:
-    """Download completed monthly 1-minute klines into ``data/lab/bars``."""
+    """Download completed monthly 1-minute klines into ``data/lab/bars``.
+
+    ``only`` restricts the download to those months ("YYYY-MM"). With ``keep_raw``
+    false the verified archive is not stored, only its SHA-256 in the month's manifest
+    (the archive itself is checksum-verified and can be fetched again at any time).
+    """
     source = f"binance-{market}"
     path = "spot" if market == "spot" else "futures/um"
     months: list[dict[str, object]] = []
     for month in month_starts(start, end):
+        if only is not None and f"{month:%Y-%m}" not in only:
+            continue
         filename = f"{symbol}-1m-{month:%Y-%m}.zip"
         target = lab_bar_path(root, source, symbol) / f"{month:%Y-%m}.parquet"
         if target.exists():
             months.append({"month": f"{month:%Y-%m}", "rows": None, "cached": True})
             continue
         url = f"{BASE}/{path}/monthly/klines/{symbol}/1m/{filename}"
-        checksum = download(client, url + ".CHECKSUM", limit=1024)
+        try:
+            checksum = download(client, url + ".CHECKSUM", limit=1024)
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code == 404 and only is not None:
+                # Listed or delisted part-way through the window: no archive that month.
+                months.append({"month": f"{month:%Y-%m}", "rows": 0, "missing": True})
+                continue
+            raise
         payload = download(client, url, limit=128 * 1024 * 1024)
         verify(payload, checksum, filename)
         frame = decode_klines(payload, filename, symbol, source)
-        with writer_lock(root / "lab"):
-            raw_archive(root, source, symbol, payload, "zip")
+        with _WRITES, writer_lock(root / "lab"):
+            if keep_raw:
+                raw_archive(root, source, symbol, payload, "zip")
+            else:
+                manifest = lab_bar_path(root, source, symbol) / "archives.jsonl"
+                manifest.parent.mkdir(parents=True, exist_ok=True)
+                with manifest.open("a", encoding="utf-8") as handle:
+                    digest = hashlib.sha256(payload).hexdigest()
+                    handle.write(f'{{"file": "{filename}", "sha256": "{digest}"}}\n')
             with atomic_path(target) as temporary:
                 frame.write_parquet(temporary, compression="zstd")
         months.append({"month": f"{month:%Y-%m}", "rows": frame.height, "cached": False})
@@ -145,18 +171,30 @@ def ingest_klines(
 
 
 def ingest_funding(
-    client: httpx.Client, root: Path, symbol: str, start: datetime, end: datetime
+    client: httpx.Client,
+    root: Path,
+    symbol: str,
+    start: datetime,
+    end: datetime,
+    only: set[str] | None = None,
 ) -> pl.DataFrame:
     """USD-M funding events: (time, rate). Positive rate means longs pay shorts."""
     frames = []
     for month in month_starts(start, end):
+        if only is not None and f"{month:%Y-%m}" not in only:
+            continue
         filename = f"{symbol}-fundingRate-{month:%Y-%m}.zip"
         target = root / "lab" / "funding" / symbol / f"{month:%Y-%m}.parquet"
         if target.exists():
             frames.append(pl.read_parquet(target))
             continue
         url = f"{BASE}/futures/um/monthly/fundingRate/{symbol}/{filename}"
-        checksum = download(client, url + ".CHECKSUM", limit=1024)
+        try:
+            checksum = download(client, url + ".CHECKSUM", limit=1024)
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code == 404 and only is not None:
+                continue
+            raise
         payload = download(client, url, limit=16 * 1024 * 1024)
         verify(payload, checksum, filename)
         rows = []
@@ -178,7 +216,7 @@ def ingest_funding(
             rows,
             schema={"symbol": pl.String, "time": pl.Datetime("us", "UTC"), "rate": pl.Float64},
         )
-        with writer_lock(root / "lab"):
+        with _WRITES, writer_lock(root / "lab"):
             raw_archive(root, "binance-um-funding", symbol, payload, "zip")
             with atomic_path(target) as temporary:
                 frame.write_parquet(temporary, compression="zstd")

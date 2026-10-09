@@ -33,23 +33,29 @@ def download(
     headers: dict[str, str] | None = None,
 ) -> bytes:
     for attempt in range(3):
-        with client.stream("GET", url, params=params, headers=headers) as response:
-            if response.status_code in {429, 500, 502, 503, 504} and attempt < 2:
-                retry = response.headers.get("retry-after", "")
-                # Never retry sooner than the source requests. Large delays fail
-                # this run so the host can retry later, rather than sleeping for hours.
-                if retry.isdecimal() and int(retry) > 30:
+        try:
+            with client.stream("GET", url, params=params, headers=headers) as response:
+                if response.status_code in {429, 500, 502, 503, 504} and attempt < 2:
+                    retry = response.headers.get("retry-after", "")
+                    # Never retry sooner than the source requests. Large delays fail
+                    # this run so the host can retry later, rather than sleeping for hours.
+                    if retry.isdecimal() and int(retry) > 30:
+                        response.raise_for_status()
+                    delay = float(retry) if retry.isdecimal() else 2 ** (attempt + 1)
+                else:
                     response.raise_for_status()
-                delay = float(retry) if retry.isdecimal() else 2 ** (attempt + 1)
-            else:
-                response.raise_for_status()
-                chunks = []
-                size = 0
-                for chunk in response.iter_bytes():
-                    size += len(chunk)
-                    if size > limit:
-                        raise ValueError(f"Download exceeds {limit} bytes: {url}")
-                    chunks.append(chunk)
-                return b"".join(chunks)
+                    chunks = []
+                    size = 0
+                    for chunk in response.iter_bytes():
+                        size += len(chunk)
+                        if size > limit:
+                            raise ValueError(f"Download exceeds {limit} bytes: {url}")
+                        chunks.append(chunk)
+                    return b"".join(chunks)
+        except httpx.TransportError:
+            # A dropped connection or timeout says nothing about the resource; retry.
+            if attempt == 2:
+                raise
+            delay = 2 ** (attempt + 1)
         time.sleep(delay)
     raise AssertionError("unreachable")
