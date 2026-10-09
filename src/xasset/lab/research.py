@@ -10,8 +10,11 @@ from __future__ import annotations
 
 import hashlib
 import json
+import multiprocessing
+import os
 import traceback
 import uuid
+from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -195,7 +198,9 @@ def scenario(
     }
 
 
-def run(root: Path, book_path: Path, phase: Phase = "discovery") -> dict[str, Any]:
+def run(
+    root: Path, book_path: Path, phase: Phase = "discovery", workers: int | None = None
+) -> dict[str, Any]:
     book, universe = load_book(book_path)
     record = load_registry(root, book.id)
     if record is None:
@@ -249,24 +254,31 @@ def run(root: Path, book_path: Path, phase: Phase = "discovery") -> dict[str, An
             "selection_note": universe.selection_note,
         },
     }
+    settings = {
+        "base": RunSettings(basis),
+        "costs_2x": RunSettings(basis, 2),
+        "delay_1_bar": RunSettings(basis, 1, 1),
+    }
     try:
-        output["scenarios"] = {
-            "base": scenario(
-                root, book, universe, replay_start, replay_end, RunSettings(basis), report_from
-            ),
-            "costs_2x": scenario(
-                root, book, universe, replay_start, replay_end, RunSettings(basis, 2), report_from
-            ),
-            "delay_1_bar": scenario(
-                root,
-                book,
-                universe,
-                replay_start,
-                replay_end,
-                RunSettings(basis, 1, 1),
-                report_from,
-            ),
-        }
+        # The scenarios are independent replays; run them side by side when cores allow.
+        count = max(1, min(workers or os.cpu_count() or 1, len(settings)))
+        if count == 1:
+            results = {
+                name: scenario(root, book, universe, replay_start, replay_end, s, report_from)
+                for name, s in settings.items()
+            }
+        else:
+            # spawn, not fork: forking a process that already runs Polars threads can deadlock.
+            context = multiprocessing.get_context("spawn")
+            with ProcessPoolExecutor(max_workers=count, mp_context=context) as pool:
+                futures = {
+                    name: pool.submit(
+                        scenario, root, book, universe, replay_start, replay_end, s, report_from
+                    )
+                    for name, s in settings.items()
+                }
+                results = {name: future.result() for name, future in futures.items()}
+        output["scenarios"] = results
         output["status"] = "completed"
     except Exception as exc:  # Persist failed attempts; they count as attempts.
         output["status"] = "failed"

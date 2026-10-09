@@ -46,6 +46,12 @@ def add_parser(parent: argparse._SubParsersAction[Any]) -> None:
     run = commands.add_parser("run", help="Replay a registered book (discovery or holdout)")
     run.add_argument("book", type=Path)
     run.add_argument("--phase", choices=["discovery", "holdout"], default="discovery")
+    run.add_argument(
+        "--workers",
+        type=int,
+        default=None,
+        help="Parallel scenario replays (default: cores, max 3)",
+    )
 
     holdout = commands.add_parser("holdout-open", help="Open the sealed holdout once")
     holdout.add_argument("book_id")
@@ -107,7 +113,7 @@ def main(args: argparse.Namespace) -> int:
     if args.lab_command == "holdout-open":
         print(json.dumps(research.open_holdout(args.data_dir, args.book_id, args.reason), indent=2))
         return 0
-    result = research.run(args.data_dir, args.book, args.phase)
+    result = research.run(args.data_dir, args.book, args.phase, args.workers)
     print(
         json.dumps(
             {
