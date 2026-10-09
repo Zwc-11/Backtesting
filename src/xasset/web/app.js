@@ -550,13 +550,57 @@ const MODES = {
 };
 async function loadCatalog() {
   if (!state.catalog) state.catalog = await api("/api/lab/catalog");
-  const handbook = state.catalog.filter((s) => s.id.startsWith("h"));
-  const notebook = state.catalog.filter((s) => s.id.startsWith("n"));
-  renderCatalog($("handbook"), handbook);
-  renderCatalog($("notebook"), notebook);
+  const [runs, paper] = await Promise.all([api("/api/lab/runs"), api("/api/paper")]);
+  const desk = (paper.desks || []).find((d) => d.running) || (paper.desks || [])[0] || null;
+  const books = [];
+  for (const book of (desk && desk.books) || []) {
+    let trades = { by_strategy: {} };
+    try {
+      trades = await api(`/api/paper/${encodeURIComponent(desk.id)}/${encodeURIComponent(book.id)}/trades?limit=1`);
+    } catch (error) { if (error instanceof AuthRequired) throw error; }
+    books.push({ book, trades });
+  }
+  const context = { runs: runs.runs || [], books };
+  renderCatalog($("handbook"), state.catalog.filter((s) => s.id.startsWith("h")), context);
+  renderCatalog($("notebook"), state.catalog.filter((s) => s.id.startsWith("n")), context);
 }
-function renderCatalog(table, items) {
-  const body = head(table, ["Strategy", "Where it runs", "Instruments", "Data it needs"]);
+function latestReplay(sid, runs) {
+  for (const run of runs) {
+    if (run.status !== "completed") continue;
+    const summary = (run.strategies || {})[sid];
+    if (summary) return { run, summary };
+  }
+  return null;
+}
+function replayCell(sid, context) {
+  const found = latestReplay(sid, context.runs);
+  if (!found) return el("span", { class: "muted" }, "No run yet");
+  const s = found.summary;
+  const where = el("span", { class: "cell-sub" }, `${found.run.book}, ${found.run.phase}`);
+  if (!s.trades) return el("div", null, "No trades", where);
+  return el("div", null,
+    `${num(s.trades, 0)} trades, `, el("span", { class: tone(s.net_pnl) }, signed(s.net_pnl, 0)),
+    `, t ${signed(s.daily_t_hac, 2)}`, where);
+}
+function paperCell(sid, context) {
+  const lines = [];
+  for (const { book, trades } of context.books) {
+    const counts = (book.counts || {})[sid];
+    const closed = (trades.by_strategy || {})[sid];
+    const runs = (book.strategies || []).some((s) => s.id === sid);
+    if (!runs) continue;
+    const label = book.basis === "mid" ? "Quote book" : "Trade-bar book";
+    if (book.status !== "live") { lines.push(el("span", { class: "cell-sub" }, `${label}: warming up`)); continue; }
+    const armed = counts ? counts.armed || 0 : 0;
+    const text = closed
+      ? [`${label}: ${num(closed.trades, 0)} closed, `, el("span", { class: tone(closed.net) }, signed(closed.net, 2))]
+      : [`${label}: ${num(armed, 0)} armed${book.calibration && !book.calibration.ready ? ", calibrating" : ""}`];
+    lines.push(el("span", { class: "cell-sub" }, ...text));
+  }
+  return lines.length ? el("div", null, ...lines) : el("span", { class: "muted" }, DASH);
+}
+function renderCatalog(table, items, context) {
+  const body = head(table, ["Strategy", "Where it runs", "Latest replay", "Paper desk", "Needs"]);
   for (const item of items) {
     const [cls, label] = MODES[item.mode] || ["blocked", words(item.mode)];
     const where = el("div", null, el("span", { class: "mode " + cls }, el("i"), label));
@@ -572,7 +616,8 @@ function renderCatalog(table, items) {
       item.title || "",
       item.direction ? el("span", { class: "muted" }, ` (${item.direction}${item.time_exit_minutes ? ", " + item.time_exit_minutes + "-minute time exit" : ""})`) : null,
       el("span", { class: "cell-sub" }, item.idea || ""));
-    body.append(cells([name, where, item.assets || DASH, el("span", { class: "needs" }, (item.data || []).join(", "))]));
+    const needs = el("div", null, item.assets || DASH, el("span", { class: "cell-sub" }, (item.data || []).join(", ")));
+    body.append(cells([name, where, replayCell(item.id, context), paperCell(item.id, context), needs]));
   }
 }
 
