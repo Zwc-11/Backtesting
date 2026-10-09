@@ -423,7 +423,10 @@ class BookDesk:
                 {
                     "id": s.id,
                     "title": s.title,
-                    "direction": "short" if s.direction < 0 else "long",
+                    # A mirror's own direction is that of the rule it inverts.
+                    "direction": "short"
+                    if getattr(s, "real_direction", s.direction) < 0
+                    else "long",
                     "targets": s.targets(),
                     "cooling": sorted(
                         symbol

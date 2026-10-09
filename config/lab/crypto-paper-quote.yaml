@@ -1,8 +1,10 @@
 # Paper book: the handbook's primary (quote midpoint) versions, live bid/ask fills.
 id: crypto-paper-quote
 universe: crypto-paper-universe.yaml
-# Frozen priority: strategies 1, 2 and 9 first, then the remaining numbers.
-strategies: [h01, h02, h09, h03, h04, h06, h07, h08, h10]
+# Frozen priority: strategies 1, 2 and 9 first, then the remaining numbers; each is
+# followed by its mirror ("m": the same rule on 1/P, opposite side; shorts trade the
+# Hyperliquid perpetuals only).
+strategies: [h01, h01m, h02, h02m, h09, h09m, h03, h03m, h04, h04m, h06, h06m, h07, h07m, h08, h08m, h10, h10m]
 costs:
   # Live fills pay the quoted spread; half_spread_bps applies only to bar replays of
   # this book's recorded data. Impact remains an assumption on top of the quote.
