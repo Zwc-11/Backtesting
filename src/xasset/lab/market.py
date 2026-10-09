@@ -39,7 +39,12 @@ FEATURES = (
 
 @dataclass
 class Tape:
-    """One instrument's bars in the current session, indexed by minute of session."""
+    """One instrument's bars in the current session, indexed by minute of session.
+
+    Numpy arrays feed the vectorized session-end features; Python lists with
+    run lengths (consecutive valid minutes ending at each index) serve the scalar
+    accessors strategies call every minute. Both are written by ``put``.
+    """
 
     width: int
     bars: list[FlowBar | None] = field(default_factory=list)
@@ -56,48 +61,81 @@ class Tape:
         self.buy, self.sell, self.uncl = nan.copy(), nan.copy(), nan.copy()
         self.spread = nan.copy()
         self.last = -1
+        width = self.width
+        self._c: list[float] = [math.nan] * width
+        self._h: list[float] = [math.nan] * width
+        self._l: list[float] = [math.nan] * width
+        self._lc: list[float] = [math.nan] * width
+        self._n: list[float] = [math.nan] * width
+        self._b: list[float] = [math.nan] * width
+        self._s: list[float] = [math.nan] * width
+        self._price_run: list[int] = [0] * width  # consecutive minutes with prices
+        self._bar_run: list[int] = [0] * width  # consecutive minutes with a bar
+        self._flow_run: list[int] = [0] * width  # consecutive minutes with labelled flow
+        # Derived values of completed minutes shared by strategies (reset each session).
+        self.memo: dict[tuple[str, int], object] = {}
 
     def put(self, index: int, bar: FlowBar, basis: Basis) -> None:
         if not 0 <= index < self.width:
             raise ValueError("Bar outside the session width")
+        if index <= self.last:
+            raise ValueError("Bars of one instrument must arrive in increasing minute order")
         self.bars[index] = bar
         price = bar.price(basis)
+        previous = index - 1
+        contiguous = previous == self.last and previous >= 0
         if price is not None:
             self.o[index], self.h[index], self.l[index], self.c[index] = price
-            self.lc[index] = math.log(price[3])
+            log_close = math.log(price[3])
+            self.lc[index] = log_close
+            self._h[index], self._l[index], self._c[index] = price[1], price[2], price[3]
+            self._lc[index] = log_close
+            self._price_run[index] = (self._price_run[previous] if contiguous else 0) + 1
         self.notional[index] = bar.notional
         self.volume[index] = bar.volume
+        self._n[index] = bar.notional
+        self._bar_run[index] = (self._bar_run[previous] if contiguous else 0) + 1
         if bar.buy_notional is not None and bar.sell_notional is not None:
             self.buy[index], self.sell[index] = bar.buy_notional, bar.sell_notional
             self.uncl[index] = bar.unclassified_notional or 0.0
+            self._b[index], self._s[index] = bar.buy_notional, bar.sell_notional
+            self._flow_run[index] = (self._flow_run[previous] if contiguous else 0) + 1
         if bar.spread_rel is not None:
             self.spread[index] = bar.spread_rel
-        self.last = max(self.last, index)
+        self.last = index
+
+    def _complete(self, runs: list[int], first: int, last: int) -> bool:
+        return 0 <= first <= last < self.width and runs[last] >= last - first + 1
 
     # Scalar, causal accessors over completed minutes of this session.
     def close(self, i: int) -> float | None:
-        return float(self.c[i]) if 0 <= i < self.width and self.c[i] == self.c[i] else None
+        if 0 <= i < self.width:
+            value = self._c[i]
+            return value if value == value else None
+        return None
 
     def high(self, i: int) -> float | None:
-        return float(self.h[i]) if 0 <= i < self.width and self.h[i] == self.h[i] else None
+        if 0 <= i < self.width:
+            value = self._h[i]
+            return value if value == value else None
+        return None
 
     def low(self, i: int) -> float | None:
-        return float(self.l[i]) if 0 <= i < self.width and self.l[i] == self.l[i] else None
+        if 0 <= i < self.width:
+            value = self._l[i]
+            return value if value == value else None
+        return None
 
     def ret(self, i: int, h: int) -> float | None:
         """log(m_i / m_{i-h}); requires all h+1 closes i-h..i in this session."""
-        if i - h < 0 or i >= self.width:
+        if not self._complete(self._price_run, i - h, i):
             return None
-        window = self.lc[i - h : i + 1]
-        if not np.isfinite(window).all():
-            return None
-        return float(window[-1] - window[0])
+        return self._lc[i] - self._lc[i - h]
 
     def sum_notional(self, first: int, last: int) -> float | None:
-        if first < 0 or last >= self.width or first > last:
+        if not self._complete(self._bar_run, first, last):
             return None
-        window = self.notional[first : last + 1]
-        return float(window.sum()) if np.isfinite(window).all() else None
+        return float(sum(self._n[first : last + 1]))
 
     def flow(self, first: int, last: int) -> tuple[float, float, float] | None:
         """(buy, sell, total) notional over minutes first..last, or None if coverage fails.
@@ -105,14 +143,11 @@ class Tape:
         Requires every minute observed and classified notional >= 95% of the total.
         Zero total notional leaves imbalance undefined, so it also returns None.
         """
-        if first < 0 or last >= self.width or first > last:
+        if not self._complete(self._flow_run, first, last):
             return None
-        buy = self.buy[first : last + 1]
-        sell = self.sell[first : last + 1]
-        total = self.notional[first : last + 1]
-        if not (np.isfinite(buy).all() and np.isfinite(sell).all() and np.isfinite(total).all()):
-            return None
-        b, s, v = float(buy.sum()), float(sell.sum()), float(total.sum())
+        b = float(sum(self._b[first : last + 1]))
+        s = float(sum(self._s[first : last + 1]))
+        v = float(sum(self._n[first : last + 1]))
         if v <= 0 or b + s < COVERAGE * v:
             return None
         return b, s, v
@@ -122,16 +157,14 @@ class Tape:
         return None if flow is None else (flow[0] - flow[1]) / flow[2]
 
     def max_high(self, first: int, last: int) -> float | None:
-        if first < 0 or last >= self.width or first > last:
+        if not self._complete(self._price_run, first, last):
             return None
-        window = self.h[first : last + 1]
-        return float(window.max()) if np.isfinite(window).all() else None
+        return max(self._h[first : last + 1])
 
     def min_low(self, first: int, last: int) -> float | None:
-        if first < 0 or last >= self.width or first > last:
+        if not self._complete(self._price_run, first, last):
             return None
-        window = self.l[first : last + 1]
-        return float(window.min()) if np.isfinite(window).all() else None
+        return min(self._l[first : last + 1])
 
 
 def rolling_valid_sum(values: np.ndarray, window: int) -> np.ndarray:
@@ -236,10 +269,18 @@ def lagged(series: np.ndarray, k: int) -> np.ndarray:
 class Market:
     """Shared causal state for one book: sessions, tapes, calibrations and models."""
 
-    def __init__(self, universe: Universe, book: Book, basis: Basis):
+    def __init__(self, universe: Universe, book: Book, basis: Basis, mirrored: bool = False):
         self.universe = universe
         self.book = book
         self.basis = basis
+        # A mirrored market holds the bars of the price series 1/P with buyer- and
+        # seller-initiated flow exchanged (see xasset.lab.mirror); ticks are relative.
+        self.mirrored = mirrored
+        self.members: frozenset[str] | None = None
+        self._peer_cache: dict[tuple[int, int], dict[str, float]] = {}
+        self._last_close: dict[str, float] = {}
+        self._previous_close: dict[str, float] = {}  # last close of the previous session
+        self._ticks = {item.id: item.tick for item in universe.instruments}
         self.sessions = Sessions(universe.calendar)
         self.width = self.sessions.max_minutes
         self.symbols = [item.id for item in universe.instruments]
@@ -284,12 +325,15 @@ class Market:
             self._roll(session)
         if minute < self.minute:
             raise ValueError("Bars must arrive in chronological order")
+        if minute != self.minute or end != self.end:
+            self._peer_cache = {}
         self.minute, self.end = minute, end
         return True
 
     def _roll(self, session: Session) -> None:
         if self.session is not None:
             self._finish_session()
+        self._previous_close = dict(self._last_close)
         for calibration in self.cal.values():
             calibration.begin(session.key)
         for tape in self.tapes.values():
@@ -297,7 +341,12 @@ class Market:
         self.session = session
         self.minute = -1
         self.sessions_seen += 1
+        self.members = self.universe.members(f"{session.open:%Y-%m}")
+        self._peer_cache = {}
         self._fit_models()
+
+    def is_member(self, symbol: str) -> bool:
+        return self.members is None or symbol in self.members
 
     def _finish_session(self) -> None:
         for symbol, tape in self.tapes.items():
@@ -323,7 +372,11 @@ class Market:
         if self.session is None or self.end is None or bar.end != self.end:
             raise ValueError("Advance the market to a bar's minute before adding it")
         if bar.symbol in self.tapes:
-            self.tapes[bar.symbol].put(self.minute, bar, self.basis)
+            tape = self.tapes[bar.symbol]
+            tape.put(self.minute, bar, self.basis)
+            close = tape.close(self.minute)
+            if close is not None:
+                self._last_close[bar.symbol] = close
 
     # --- models -------------------------------------------------------------------
     def factors(self, symbol: str) -> tuple[str, ...]:
@@ -430,7 +483,26 @@ class Market:
         value = self.cal[(symbol, f"R{h}")].scale(i)
         if value is None or price <= 0:
             return None
-        return max(value, self.universe.get(symbol).tick / price)
+        return max(value, self.relative_tick(symbol, price))
+
+    def relative_tick(self, symbol: str, price: float) -> float:
+        """One tick as a fraction of ``price`` (a price on this market's own scale).
+
+        In a mirrored market ``price`` is 1/P, so the real tick over P is tick * price.
+        """
+        tick = self._ticks[symbol]
+        return tick * price if self.mirrored else tick / price
+
+    def tick(self, symbol: str) -> float:
+        """One tick in this market's price units at the latest observed price."""
+        tick = self._ticks[symbol]
+        if not self.mirrored:
+            return tick
+        price = self._last_close.get(symbol)
+        if price is None:
+            raise ValueError(f"No observed price for {symbol} to express its tick")
+        # d(1/P) = -dP / P^2, so one real tick spans tick * (1/P)^2 on the mirrored scale.
+        return tick * price * price
 
     def quantile(self, symbol: str, name: str, i: int, p: float) -> float | None:
         return self.cal[(symbol, name)].quantile(i, p)
@@ -442,17 +514,69 @@ class Market:
         return [
             item.id
             for item in self.universe.instruments
-            if item.breadth_member and item.id not in (symbol, self.universe.benchmark)
+            if item.breadth_member
+            and item.id not in (symbol, self.universe.benchmark)
+            and self.is_member(item.id)
         ]
 
+    def _peer_returns(self, i: int, h: int) -> dict[str, float]:
+        """Valid h-minute returns of every eligible breadth member at minute i (cached)."""
+        key = (i, h)
+        cached = self._peer_cache.get(key)
+        if cached is None:
+            cached = {}
+            for item in self.universe.instruments:
+                if (
+                    item.breadth_member
+                    and item.id != self.universe.benchmark
+                    and self.is_member(item.id)
+                ):
+                    value = self.tapes[item.id].ret(i, h)
+                    if value is not None:
+                        cached[item.id] = value
+            self._peer_cache[key] = cached
+        return cached
+
     def breadth(self, symbol: str, i: int, h: int, sign: int) -> tuple[float, int] | None:
-        """Share of eligible peers whose h-minute return has the given sign, and count."""
-        values = [self.tapes[p].ret(i, h) for p in self.peers(symbol)]
-        valid = [v for v in values if v is not None]
-        if len(valid) < self.universe.minimum_peers:
+        """Share of eligible peers whose h-minute return has the given sign, and count.
+
+        Peers exclude ``symbol`` and the benchmark and must be members at the time.
+        """
+        returns = self._peer_returns(i, h)
+        count = len(returns) - (1 if symbol in returns else 0)
+        if count < self.universe.minimum_peers:
             return None
-        hits = sum(1 for v in valid if (v > 0 if sign > 0 else v < 0))
-        return hits / len(valid), len(valid)
+        if sign > 0:
+            hits = sum(1 for s, v in returns.items() if v > 0 and s != symbol)
+        else:
+            hits = sum(1 for s, v in returns.items() if v < 0 and s != symbol)
+        return hits / count, count
+
+    def context(self, i: int) -> dict[str, float | None]:
+        """The wider market at minute i: benchmark trend, its volatility regime, breadth.
+
+        ``day`` is the benchmark's log return from the previous session's last close;
+        ``vol_ratio`` is its realized one-minute volatility over the last 60 minutes over
+        its prior-session scale (above 1 means a more volatile market than usual).
+        """
+        benchmark = self.tapes[self.universe.benchmark]
+        out: dict[str, float | None] = {
+            "market_60m": benchmark.ret(i, 60),
+            "market_240m": benchmark.ret(i, 240),
+        }
+        close, previous = benchmark.close(i), self._previous_close.get(self.universe.benchmark)
+        out["market_day"] = math.log(close / previous) if close and previous else None
+        returns = [benchmark.ret(u, 1) for u in range(i - 59, i + 1)]
+        valid = [r for r in returns if r is not None]
+        scale = self.cal[(self.universe.benchmark, "R1")].scale(i)
+        out["market_vol_ratio"] = (
+            math.sqrt(sum(r * r for r in valid) / len(valid)) / scale
+            if len(valid) >= 45 and scale
+            else None
+        )
+        breadth = self.breadth(self.universe.benchmark, i, 60, 1)
+        out["breadth_up_60m"] = None if breadth is None else breadth[0]
+        return out
 
 
 def pair_lookup(pairs: list[Pair]) -> dict[str, list[str]]:

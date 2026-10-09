@@ -29,7 +29,7 @@ class ResidualBreadth(Strategy):
     )
     time_exit_minutes = 30
 
-    def targets(self) -> list[str]:
+    def candidates(self) -> list[str]:
         return list(self.universe.index_constituents)
 
     def breadth(self, index: str, i: int) -> tuple[float, float] | None:

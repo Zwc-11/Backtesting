@@ -23,6 +23,7 @@ from xasset.lab.strategy import Candidate, Requirements, Setup, Strategy
 class LessBuyingAtResistance(Strategy):
     id = "h06"
     title = "Resistance approached with less buying"
+    levels = {"U": ("asset", "resistance U")}
     requires = Requirements(
         quotes=True,
         flow=True,
@@ -40,7 +41,7 @@ class LessBuyingAtResistance(Strategy):
         i, market = self.minute, self.market
         tape = market.tapes[symbol]
         close, u = tape.close(i), tape.max_high(i - 60, i - 1)
-        if close is None or u is None:
+        if close is None or u is None or close > u:  # the visit rule requires close <= U
             return None
         sigma5 = market.sigma(symbol, 5, i, close)
         sigma10 = market.sigma(symbol, 10, i, close)

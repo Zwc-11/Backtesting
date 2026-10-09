@@ -31,6 +31,10 @@ class CatchUp(Strategy):
         notes="Synchronized quotes for predeclared economically related pairs.",
     )
     time_exit_minutes = 20
+    levels = {
+        "K0": ("asset", "laggard five-minute low K0"),
+        "leader_pre_shock": ("leader", "leader price before the shock"),
+    }
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         super().__init__(*args, **kwargs)  # type: ignore[arg-type]
@@ -38,12 +42,14 @@ class CatchUp(Strategy):
         for leader, laggard in self.market.pairs:
             self.leaders.setdefault(laggard, []).append(leader)
 
-    def targets(self) -> list[str]:
+    def candidates(self) -> list[str]:
         return sorted(self.leaders)
 
     def arm(self, symbol: str) -> Setup | None:
         i, market = self.minute, self.market
         for leader in self.leaders[symbol]:
+            if not market.is_member(leader):
+                continue
             model = market.lag.get((leader, symbol))
             if model is None or not model.stable or model.beta_sum <= 0:
                 continue

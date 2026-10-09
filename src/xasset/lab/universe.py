@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Literal
 
 import yaml
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, model_validator
 
 Kind = Literal["spot", "perp", "equity", "etf"]
 
@@ -78,6 +79,10 @@ class Universe(BaseModel):
         description="Calendar whose scheduled open defines the main-session handoff (strategy 10)",
     )
     selection_note: str = Field(min_length=10)
+    # Point-in-time membership: month ("YYYY-MM") -> instruments eligible to trade and
+    # to count in breadth that month. Empty means every instrument, always.
+    membership: dict[str, list[str]] = Field(default_factory=dict)
+    _index: dict[str, LabInstrument] = PrivateAttr(default_factory=dict)
 
     @model_validator(mode="after")
     def consistent(self) -> Universe:
@@ -101,13 +106,44 @@ class Universe(BaseModel):
         calendars = {item.calendar for item in self.instruments}
         if len(calendars) != 1:
             raise ValueError("One book uses one session definition; split mixed calendars")
+        for month, members in self.membership.items():
+            if not re.fullmatch(r"\d{4}-(0[1-9]|1[0-2])", month):
+                raise ValueError(f"Membership month must be YYYY-MM: {month}")
+            if set(members) - known:
+                raise ValueError(f"Membership for {month} names unknown instruments")
+            if self.benchmark not in members:
+                raise ValueError(f"The benchmark must be a member in {month}")
         return self
 
     def get(self, symbol: str) -> LabInstrument:
-        for item in self.instruments:
-            if item.id == symbol:
-                return item
-        raise KeyError(symbol)
+        if not self._index:
+            self._index.update({item.id: item for item in self.instruments})
+        return self._index[symbol]
+
+    def members(self, month: str) -> frozenset[str] | None:
+        """Instruments eligible in ``month`` (YYYY-MM); None when membership is not used.
+
+        A month outside the declared schedule has no members, so nothing trades there.
+        """
+        if not self.membership:
+            return None
+        return frozenset(self.membership.get(month, ()))
+
+    def loaded(self, month: str) -> frozenset[str] | None:
+        """Instruments whose bars a replay must load in ``month``.
+
+        Members of the month itself, of the previous month (positions opened just
+        before the month boundary must still exit) and of the next two months
+        (calibrations need 20 prior sessions; pair models need 60). None means all.
+        """
+        if not self.membership:
+            return None
+        year, number = (int(part) for part in month.split("-"))
+        names: set[str] = {self.benchmark}
+        for offset in (-1, 0, 1, 2):
+            index = year * 12 + number - 1 + offset
+            names |= set(self.membership.get(f"{index // 12:04d}-{index % 12 + 1:02d}", ()))
+        return frozenset(names)
 
     @property
     def calendar(self) -> str | None:
