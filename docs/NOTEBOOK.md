@@ -23,8 +23,10 @@ need order-book or event-level data that no public archive provides.
 - Eligibility each day: listed at least 90 days (in the current trading history),
   trailing 30-day median notional of at least 5 million USDT, and in the top 100 by
   that liquidity. Everything uses data up to that day only.
-- n04 also reads the one-minute archives under `data/lab/bars/binance-spot/`
-  (`xasset lab ingest --market spot …`).
+- n04 also reads the one-minute archives under `data/lab/bars/binance-spot/` for
+  2025-01 to 2026-09 (`xasset lab ingest-universe config/lab/crypto-universe.yaml
+  --start 2025-01-01T00:00Z --end 2026-10-01T00:00Z`). The archives are
+  checksum-verified, so a fresh download reproduces the registered study exactly.
 
 ## Method
 

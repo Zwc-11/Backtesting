@@ -31,6 +31,13 @@ def add_parser(parent: argparse._SubParsersAction[Any]) -> None:
     ingest.add_argument("--end", type=parse_time, required=True)
     ingest.add_argument("--funding", action="store_true", help="Also fetch USD-M funding")
 
+    every = commands.add_parser(
+        "ingest-universe", help="Download every Binance archive a universe file needs"
+    )
+    every.add_argument("universe", type=Path)
+    every.add_argument("--start", type=parse_time, required=True)
+    every.add_argument("--end", type=parse_time, required=True)
+
     register = commands.add_parser("register", help="Freeze a book and its interval")
     register.add_argument("book", type=Path)
     register.add_argument("--start", type=parse_time, required=True)
@@ -46,7 +53,7 @@ def add_parser(parent: argparse._SubParsersAction[Any]) -> None:
 
     commands.add_parser("catalog", help="List every strategy, its data needs and mode")
 
-    for command in (ingest, register, run, holdout):
+    for command in (ingest, every, register, run, holdout):
         command.add_argument("--data-dir", type=Path, default=default_root)
 
 
@@ -70,6 +77,27 @@ def main(args: argparse.Namespace) -> int:
                     report["funding_events"] = funding.height
                 reports.append(report)
         print(json.dumps(reports, indent=2))
+        return 0
+    if args.lab_command == "ingest-universe":
+        from xasset.lab.ingest import Market
+        from xasset.lab.universe import load_universe
+
+        universe = load_universe(args.universe)
+        reports = []
+        with httpx.Client(timeout=120, headers={"User-Agent": "xasset/0.1 lab"}) as client:
+            for item in universe.instruments:
+                markets: dict[str, Market] = {"binance-spot": "spot", "binance-um": "um"}
+                market = markets.get(item.history)
+                if market is None:
+                    continue
+                symbol = item.archive_symbol
+                print(f"{item.id}: {market} {symbol}", flush=True)
+                report = ingest_klines(client, args.data_dir, market, symbol, args.start, args.end)
+                if market == "um":
+                    funding = ingest_funding(client, args.data_dir, symbol, args.start, args.end)
+                    report["funding_events"] = funding.height
+                reports.append(report)
+        print(json.dumps({"instruments": len(reports)}, indent=2))
         return 0
     if args.lab_command == "register":
         print(
