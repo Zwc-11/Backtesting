@@ -197,6 +197,11 @@ briefly while the dashboard reads them. Keep the computer from sleeping while th
 desk runs; a sleeping machine produces skipped minutes, which the desk records
 rather than fills.
 
+## Adding strategies
+
+See [ADDING_STRATEGIES.md](ADDING_STRATEGIES.md) for both kinds (state machines and notebook
+models): the class contract, registration, tests and books.
+
 ## Limitations
 
 - Impact (1–3 bps per side) is an uncalibrated assumption on top of real spreads.

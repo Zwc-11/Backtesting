@@ -46,7 +46,8 @@ simulated bid/ask fills and no order routing. The dashboard shows a live state
 board of every strategy on every instrument, open positions, results, registered
 runs and data health. See [docs/LAB.md](docs/LAB.md). Model strategies 1, 3, 4 and 8
 from the experimental notebook run as registered walk-forward studies on a
-survivorship-aware Binance universe; see [docs/NOTEBOOK.md](docs/NOTEBOOK.md).
+survivorship-aware Binance universe; see [docs/NOTEBOOK.md](docs/NOTEBOOK.md). To add
+your own strategies, follow [docs/ADDING_STRATEGIES.md](docs/ADDING_STRATEGIES.md).
 
 ```bash
 uv run --frozen xasset-app paper --config config/lab/paper-crypto.yaml
