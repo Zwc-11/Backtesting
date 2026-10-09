@@ -578,7 +578,7 @@ function eventDetail(event, payload) {
       else if (typeof value === "string" && value.length < 24) parts.push(`${key} ${value}`);
     }
   }
-  if (event.event === "filled" && finite(d.price)) parts.unshift(`at ${price(d.price)}`);
+  if (event.event === "filled" && finite(d.price)) parts.unshift(`at ${price(d.price)}, the open of the minute after the decision (one-minute bars cannot place a fill inside the minute)`);
   return parts.join("; ");
 }
 
@@ -609,8 +609,9 @@ function tradeChart(host, payload, readout) {
     return;
   }
   const extras = ["benchmark", "leader"].filter((k) => payload.series[k] && payload.series[k].bars.length);
-  const width = Math.max(320, host.clientWidth);
-  const left = 8, right = 150, mainH = 280, extraH = 96, flowH = 54, gap = 22, axisH = 22, top = 26;
+  const width = Math.max(300, host.clientWidth);
+  const narrow = width < 640;
+  const left = 8, right = narrow ? 84 : 150, mainH = narrow ? 240 : 280, extraH = 96, flowH = 54, gap = 22, axisH = 22, top = narrow ? 38 : 26;
   const height = top + mainH + extras.length * (extraH + gap) + gap + flowH + axisH;
   const t0 = ms(payload.window[0]), t1 = ms(payload.window[1]);
   const plotW = width - left - right;
@@ -647,7 +648,7 @@ function tradeChart(host, payload, readout) {
     for (const l of levelsFor(series)) {
       const from = Math.max(t0, l.from ? ms(l.from) : t0);
       chart.append(svg("line", { class: "level", x1: x(from), x2: left + plotW, y1: y(l.value), y2: y(l.value) }));
-      labels.push({ y: y(l.value), text: `${l.label} ${price(l.value)}`, cls: "level-label" });
+      labels.push({ y: y(l.value), text: narrow ? `${l.key} ${price(l.value)}` : `${l.label} ${price(l.value)}`, cls: "level-label" });
     }
     return { y, lo, hi, labels };
   }
@@ -663,7 +664,7 @@ function tradeChart(host, payload, readout) {
   }
 
   const main = panel(top, mainH, asset.bars, "asset", true);
-  text("panel-label", left + 6, top + 14, `${short(asset.symbol)}${payload.mirror ? " (mirror strategy: levels shown on the real price)" : ""}`);
+  text("panel-label", left + 6, top + 14, `${short(asset.symbol)}${payload.mirror && !narrow ? " (mirror strategy: levels shown on the real price)" : ""}`);
   if (trade) {
     const a = ms(trade.entry_time), b = ms(trade.exit_time);
     chart.append(svg("line", { class: "stop", x1: x(a), x2: x(b), y1: main.y(trade.stop), y2: main.y(trade.stop) }));
@@ -709,7 +710,8 @@ function tradeChart(host, payload, readout) {
     const ex = x(ms(event.at));
     if (ex < left || ex > left + plotW) continue;
     chart.append(svg("line", { class: "event", x1: ex, x2: ex, y1: top, y2: bottom }));
-    row = ex - lastLabel < 70 ? (row + 1) % 2 : 0;
+    const rows = narrow ? 3 : 2;
+    row = ex - lastLabel < 70 ? (row + 1) % rows : 0;
     lastLabel = ex;
     text("event-label", ex + 3, 10 + row * 12, EVENT_NAMES[event.event] || words(event.event));
   }
@@ -775,7 +777,9 @@ function renderDiagnostics(detail) {
       n(signed(at30.placebo_bps, 1))]));
   }
   if (!body.children.length) emptyRow(body, horizons.length + 3, "No trades to measure in this run.");
-  const regimeNames = [...new Set(Object.values(diagnostics.regimes || {}).flatMap((r) => Object.keys(r)))];
+  const order = ["market up since prior close", "market down since prior close", "market up last 4h", "market down last 4h", "calm market (last hour)", "volatile market (last hour)"];
+  const present = new Set(Object.values(diagnostics.regimes || {}).flatMap((r) => Object.keys(r)));
+  const regimeNames = [...order.filter((name) => present.has(name)), ...[...present].filter((name) => !order.includes(name))];
   const rbody = head($("run-regimes"), ["Strategy", ...regimeNames.map((name) => [words(name), true])]);
   for (const sid of strategies) {
     const r = (diagnostics.regimes || {})[sid];
