@@ -1,0 +1,32 @@
+# Paper book: the archive (trade-bar) variants with live bid/ask fills. Compare its
+# live results with the crypto-archive replay of the same variants.
+id: crypto-paper-trade
+universe: crypto-paper-universe.yaml
+strategies: [h01, h02, h09t, h03, h04, h06, h07, h08, h10]
+costs:
+  crypto_spot_major:
+    half_spread_bps: 0.5
+    impact_bps: 1.0
+    fee_bps: 10.0
+    evidence: "Binance spot VIP0 taker fee 0.10%; impact is an uncalibrated assumption."
+  crypto_spot_alt:
+    half_spread_bps: 2.0
+    impact_bps: 3.0
+    fee_bps: 10.0
+    evidence: "Binance spot VIP0 taker fee 0.10%; impact is an uncalibrated assumption."
+  hyperliquid_perp:
+    half_spread_bps: 1.0
+    impact_bps: 2.0
+    fee_bps: 4.5
+    evidence: "Hyperliquid base-tier perpetual taker fee 0.045%; impact is an uncalibrated assumption."
+limits:
+  initial_nav: 100000
+execution:
+  decision_latency_ms: 250
+  transport_latency_ms: 150
+  bar_settlement_ms: 1500
+  cooldown_minutes: 15
+  max_quote_age_seconds: 5
+calibration_sessions: 20
+calibration_half_window: 15
+minimum_reference: 200

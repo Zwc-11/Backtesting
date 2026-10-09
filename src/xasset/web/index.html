@@ -1,22 +1,195 @@
 <!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Cross-asset research, market relationships, and feed health."><title>xasset · World monitor</title><link rel="stylesheet" href="/assets/style.css"><script src="/assets/app.js" defer></script></head>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Strategy lab: the live paper desk, registered backtests and data health.">
+<title>xasset lab</title>
+<link rel="preload" href="/assets/fonts/barlow-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/assets/fonts/barlow-semi-condensed-latin-500-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/style.css">
+<script src="/assets/app.js" defer></script>
+</head>
 <body>
-<header><a class="brand" href="/" aria-label="xasset home"><span class="brand-mark">x</span>xasset<span class="brand-caption">WORLD MONITOR</span></a><div class="connection"><span id="connection-dot" class="dot"></span><span id="connection">Connecting</span><span class="separator"></span><time id="clock"></time></div></header>
-<div class="shell">
-<aside><div class="nav-caption">WORKSPACE</div><nav aria-label="Main navigation"><button data-view="map" class="active" aria-selected="true">◈ <span>Relationship map</span></button><button data-view="monitor" aria-selected="false">⌁ <span>Market monitor</span></button><button data-view="health" aria-selected="false">◉ <span>Data health</span></button><button data-view="experiments" aria-selected="false">▤ <span>Experiments</span></button></nav><div class="side-note"><span class="dot mint"></span> OBSERVATION MODE<p>Research and market diagnostics. Trading is disabled until a strategy passes every acceptance gate.</p></div></aside>
+<header class="bar">
+  <a class="mark" href="#desk">xasset<span>lab</span></a>
+  <nav aria-label="Sections">
+    <a href="#desk" data-view="desk">Desk</a>
+    <a href="#strategies" data-view="strategies">Strategies</a>
+    <a href="#backtests" data-view="backtests">Backtests</a>
+    <a href="#relationships" data-view="relationships">Relationships</a>
+    <a href="#data" data-view="data">Data</a>
+  </nav>
+  <div class="desk-status" title="Paper desk status">
+    <span class="lamp" id="desk-lamp" aria-hidden="true"></span>
+    <span id="desk-state">Checking the desk</span>
+    <time id="clock" aria-label="Current UTC time"></time>
+  </div>
+</header>
+
 <main>
-<section class="title-row"><div><div class="eyebrow">CROSS-ASSET RESEARCH</div><h1 id="view-title">Relationship map</h1><p id="view-description">Explore relationships that survive a separate observation window.</p></div><button id="refresh" class="outline">↻ Refresh</button></section>
-<div id="notice" class="notice" role="status" hidden></div>
-<section class="metrics" aria-label="Workspace summary"><article><span>LIVE DATA SOURCES</span><strong id="feed-count">—</strong><small id="feed-detail">Waiting for a capture cycle</small></article><article><span>STABLE RELATIONSHIPS</span><strong id="stable-count">—</strong><small>After global false-discovery control</small></article><article><span>REGISTERED MAP TESTS</span><strong id="test-count">—</strong><small>Every pair, lag and horizon retained</small></article><article><span>ACCEPTED STRATEGIES</span><strong>0</strong><small>Research gates remain enforced</small></article></section>
-<section id="view-map" class="view">
-<div class="panel"><div class="panel-head"><div><h2>Market connections</h2><p>Click a connection for its evidence. Drag a node to arrange the view.</p></div><div class="filters"><label>Horizon<select id="horizon"><option>5m</option><option>1h</option><option>1d</option></select></label><label>Type<select id="kind"><option value="all">All relationships</option><option value="pearson">Co-movement</option><option value="spearman">Rank correlation</option><option value="lead_lag">Lead–lag</option><option value="partial">Direct link</option><option value="cointegration">Long-run tie</option></select></label><label>Status<select id="edge-state"><option value="stable">Stable</option><option value="significant">Significant</option><option value="all">All candidates</option></select></label></div></div><div class="graph-layout"><div class="graph-wrap"><svg id="graph" viewBox="0 0 850 560" aria-label="Interactive relationship network" role="img"></svg><p id="graph-empty" class="graph-empty" hidden>No relationships meet this filter. Unsuccessful and unestimable tests remain in the evidence table.</p><div class="legend"><span><i class="mint-line"></i>Positive</span><span><i class="amber-line"></i>Negative</span><span>Descriptive · not a trading signal</span></div></div><div id="edge-detail" class="detail"><span class="eyebrow">EVIDENCE</span><h3>Select a relationship</h3><p>Compare its first-window strength with the following window. A stable edge must keep its sign and at least half its strength, and pass corrected significance in both windows.</p></div></div></div>
-<div class="panel"><div class="panel-head"><h2>Relationship evidence</h2><span id="edge-total" class="muted"></span></div><div class="table-wrap"><table><thead><tr><th>Driver / pair</th><th>Follower</th><th>Type</th><th>Lag</th><th>First window</th><th>Following window</th><th>Adjusted p</th><th>Status</th></tr></thead><tbody id="edge-rows"></tbody></table></div></div>
-</section>
-<section id="view-monitor" class="view" hidden><div class="panel"><div class="panel-head"><div><h2>Market observations</h2><p>Completed one-minute bars. Each venue and instrument retains its own identity.</p></div><span id="monitor-time" class="muted"></span></div><div id="price-panels" class="price-panels"></div></div><div class="panel"><div class="panel-head"><h2>Alert log</h2><span id="delivery-state" class="badge">Log only</span></div><div class="table-wrap"><table><thead><tr><th>Time</th><th>Condition</th><th>Instrument</th><th>Observation</th><th>Delivery</th></tr></thead><tbody id="alert-rows"></tbody></table></div></div><p class="footnote">Move, relationship break, regime, event-window and data-health diagnostics are observational. Lead-fired trade alerts require an accepted strategy and are currently disabled.</p></section>
-<section id="view-health" class="view" hidden><div class="panel"><div class="panel-head"><h2>Feed health</h2><span class="muted">Closed markets are identified explicitly</span></div><div class="table-wrap"><table><thead><tr><th>Instrument</th><th>Source</th><th>Status</th><th>Last complete bar</th><th>Age</th><th>Observed bars</th></tr></thead><tbody id="health-rows"></tbody></table></div></div><div class="panel"><div class="panel-head"><h2>Historical equity coverage</h2><span class="muted">Discovery interval · frozen 95% requirement</span></div><div class="table-wrap"><table><thead><tr><th>Instrument</th><th>Feed</th><th>Minute bars</th><th>Missing minutes</th><th>Coverage</th><th>Evidence</th></tr></thead><tbody id="coverage-rows"></tbody></table></div></div></section>
-<section id="view-experiments" class="view" hidden><div class="panel"><div class="panel-head"><div><h2>Registered experiments</h2><p>Rejected, blocked and incomplete results remain visible. Positive returns alone do not establish an edge.</p></div></div><div id="experiment-cards" class="experiment-cards"></div></div><div class="notice">No strategy is accepted. Paper trading requires a qualifying discovery result, a one-use holdout, independent review and execution reconciliation.</div></section>
-<footer><span>xasset · Research workspace</span><span id="data-window">No research holdout is opened by this dashboard.</span></footer>
-</main></div>
-<dialog id="login"><form id="login-form"><div class="eyebrow">PRIVATE WORKSPACE</div><h2>Enter your access token</h2><p>Use the dashboard token configured on your host.</p><label>Access token<input id="token" type="password" autocomplete="current-password" required></label><button class="primary" type="submit">Open workspace</button><p id="login-error" role="alert"></p></form></dialog>
-</body></html>
+  <p id="notice" class="notice" role="status" hidden></p>
+
+  <section id="view-desk" class="view" aria-labelledby="desk-title" hidden>
+    <div class="head">
+      <h1 id="desk-title">Paper desk</h1>
+      <p class="lede">Every strategy on every instrument, live. Prices, trades and quotes come from public Binance and Hyperliquid feeds; fills are simulated against the bid and ask, and no order ever leaves this machine.</p>
+      <div class="switch" id="book-switch" role="group" aria-label="Book"></div>
+    </div>
+
+    <div id="desk-empty" class="empty-state" hidden>
+      <h2>The paper desk is not running</h2>
+      <p>Start it in a terminal from the project folder. The board fills in within a minute; the trade-bar book needs a few minutes to replay its archive history first.</p>
+      <p><code>uv run xasset-app paper --config config/lab/paper-crypto.yaml</code></p>
+      <p class="muted" id="desk-last-seen"></p>
+    </div>
+
+    <div id="desk-body" class="view" hidden>
+      <dl class="figures" id="book-figures"></dl>
+      <p class="note" id="book-note"></p>
+      <div>
+        <div class="board-wrap"><table class="board" id="board" aria-label="Strategy state for every instrument"></table></div>
+      </div>
+      <ul class="legend" aria-label="Board legend">
+        <li><span class="track"></span>Watching</li>
+        <li><span class="lamp armed"></span>Setup armed, waiting for confirmation</li>
+        <li><span class="lamp ordered"></span>Confirmed, order waiting to fill</li>
+        <li><span class="lamp open"></span>Position open</li>
+        <li><span class="lamp cool"></span>Cooling down after a setup ended</li>
+      </ul>
+      <p class="pick" id="pick" aria-live="polite">Select a lamp to see the setup behind it.</p>
+      <div class="split">
+        <section aria-labelledby="positions-title">
+          <h2 id="positions-title">Open positions</h2>
+          <div class="table-wrap"><table class="data" id="positions"></table></div>
+        </section>
+        <section aria-labelledby="activity-title">
+          <h2 id="activity-title">Activity</h2>
+          <ol class="log" id="activity"></ol>
+        </section>
+      </div>
+      <section aria-labelledby="results-title">
+        <h2 id="results-title">Results since the book went live</h2>
+        <div class="chart" id="paper-chart"></div>
+      </section>
+      <div class="split">
+        <section aria-labelledby="by-strategy-title">
+          <h2 id="by-strategy-title">By strategy</h2>
+          <div class="table-wrap"><table class="data" id="paper-strategies"></table></div>
+        </section>
+        <section aria-labelledby="closed-title">
+          <h2 id="closed-title">Closed trades</h2>
+          <div class="table-wrap tall"><table class="data" id="paper-trades"></table></div>
+        </section>
+      </div>
+    </div>
+  </section>
+
+  <section id="view-strategies" class="view" aria-labelledby="strategies-title" hidden>
+    <div class="head">
+      <h1 id="strategies-title">Strategies</h1>
+      <p class="lede">All twenty supplied strategies and where each one can be measured honestly: replayed on archives, run live on the paper desk, or blocked by missing data.</p>
+    </div>
+    <section aria-labelledby="handbook-title">
+      <h2 id="handbook-title">Ten trading strategy specifications</h2>
+      <div class="table-wrap"><table class="data" id="handbook"></table></div>
+    </section>
+    <section aria-labelledby="notebook-title">
+      <h2 id="notebook-title">Ten experimental trading strategies</h2>
+      <div class="table-wrap"><table class="data" id="notebook"></table></div>
+    </section>
+  </section>
+
+  <section id="view-backtests" class="view" aria-labelledby="backtests-title" hidden>
+    <div class="head">
+      <h1 id="backtests-title">Backtests</h1>
+      <p class="lede">Registered replays of each book. The last fifth of every registered period stays sealed until it is opened once, with a written reason, from the command line.</p>
+    </div>
+    <section aria-labelledby="registry-title">
+      <h2 id="registry-title">Registered books</h2>
+      <div class="registry" id="registry"></div>
+    </section>
+    <section aria-labelledby="runs-title">
+      <h2 id="runs-title">Runs</h2>
+      <div class="table-wrap"><table class="data" id="runs"></table></div>
+    </section>
+    <div id="run-detail" class="view" hidden>
+      <div class="run-head">
+        <div>
+          <h2 id="run-title"></h2>
+          <p id="run-subtitle"></p>
+        </div>
+        <div class="switch" id="scenario-switch" role="group" aria-label="Cost and delay scenario">
+          <button type="button" data-scenario="base" aria-pressed="true">Base costs</button>
+          <button type="button" data-scenario="costs_2x" aria-pressed="false">Double costs</button>
+          <button type="button" data-scenario="delay_1_bar" aria-pressed="false">One bar later</button>
+        </div>
+      </div>
+      <dl class="figures" id="run-figures"></dl>
+      <div class="chart" id="run-chart"></div>
+      <div class="table-wrap"><table class="data" id="run-strategies"></table></div>
+      <p class="note" id="run-note"></p>
+      <section aria-labelledby="run-trades-title">
+        <h2 id="run-trades-title">Trades</h2>
+        <div class="table-wrap tall"><table class="data" id="run-trades"></table></div>
+      </section>
+    </div>
+  </section>
+
+  <section id="view-relationships" class="view" aria-labelledby="relationships-title" hidden>
+    <div class="head">
+      <h1 id="relationships-title">Relationships</h1>
+      <p class="lede">Cross-asset relationships measured in one window and checked in the next. Descriptive only: a stable relationship is not a trading signal.</p>
+    </div>
+    <div class="filters">
+      <label>Horizon<select id="horizon"><option>5m</option><option>1h</option><option>1d</option></select></label>
+      <label>Kind<select id="kind"><option value="all">All kinds</option><option value="pearson">Co-movement</option><option value="spearman">Rank correlation</option><option value="lead_lag">Lead and lag</option><option value="partial">Direct link</option><option value="cointegration">Long-run tie</option></select></label>
+      <label>Status<select id="edge-state"><option value="stable">Stable in both windows</option><option value="significant">Significant once</option><option value="all">All candidates</option></select></label>
+    </div>
+    <div class="graph-layout">
+      <div class="graph">
+        <svg id="graph" viewBox="0 0 850 560" role="img" aria-label="Relationship network"></svg>
+      </div>
+      <div class="edge-detail" id="edge-detail"><h3>Select a relationship</h3><p class="muted">Click a line or a table row to compare its strength in the first window with the following one.</p></div>
+    </div>
+    <p class="note" id="edge-total"></p>
+    <div class="table-wrap tall"><table class="data" id="edges"></table></div>
+  </section>
+
+  <section id="view-data" class="view" aria-labelledby="data-title" hidden>
+    <div class="head">
+      <h1 id="data-title">Data</h1>
+      <p class="lede">Where the numbers come from and whether they can be trusted right now: live feeds, the desk clock, every instrument's quotes and the recorded history.</p>
+    </div>
+    <section aria-labelledby="feeds-title">
+      <h2 id="feeds-title">Paper desk feeds</h2>
+      <div class="table-wrap"><table class="data" id="feeds"></table></div>
+      <p class="note" id="clock-note"></p>
+    </section>
+    <section aria-labelledby="instruments-title">
+      <h2 id="instruments-title">Instruments</h2>
+      <div class="table-wrap"><table class="data" id="instruments"></table></div>
+    </section>
+    <section aria-labelledby="monitor-title">
+      <h2 id="monitor-title">Market monitor</h2>
+      <div class="table-wrap"><table class="data" id="monitor-feeds"></table></div>
+    </section>
+    <section aria-labelledby="coverage-title">
+      <h2 id="coverage-title">Historical equity coverage</h2>
+      <div class="table-wrap"><table class="data" id="coverage"></table></div>
+    </section>
+  </section>
+</main>
+<footer>Research and paper trading only. Results are historical or simulated and say nothing certain about future returns.</footer>
+
+<dialog id="login">
+  <form id="login-form">
+    <h2>Open the lab</h2>
+    <p class="muted">Enter the access token set on this computer.</p>
+    <label>Access token<input id="token" type="password" autocomplete="current-password" required></label>
+    <button class="primary" type="submit">Open</button>
+    <p class="error-text" id="login-error" role="alert"></p>
+  </form>
+</dialog>
+</body>
+</html>
