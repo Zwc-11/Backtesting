@@ -38,7 +38,7 @@ expected row counts. These remain single-source observations: no real independen
 provider reconciliation has passed yet. Alpaca is blocked by missing bindings;
 Tokyo/Hong Kong source gaps and unknown futures sessions remain explicit.
 
-The native engine supersedes Hindsight at the user's request. Its validation
+The native engine is the project's backtest core. Its validation
 gate now implements preregistration, a one-use vault, purged/embargoed selection,
 1x/2x costs, execution/accounting checks, daily selection statistics and trade/fold
 concentration checks. DSR uses an approximation that assumes independent daily

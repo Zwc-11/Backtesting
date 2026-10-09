@@ -12,8 +12,10 @@ import polars as pl
 
 from xasset.config import load_universe
 from xasset.ingest.history import ingest
+from xasset.lab import cli as lab_cli
 from xasset.normalize.resample import resample
 from xasset.normalize.timebase import utc
+from xasset.notebook import cli as study_cli
 from xasset.qc.audit import audit_bars
 from xasset.qc.checks import check_bars
 from xasset.qc.reconcile import reconcile
@@ -37,6 +39,8 @@ def parser() -> argparse.ArgumentParser:
     result = argparse.ArgumentParser(prog="xasset", description="Cross-asset data recorder and QC")
     subparsers = result.add_subparsers(dest="command", required=True)
     research_cli.add_parser(subparsers)
+    lab_cli.add_parser(subparsers)
+    study_cli.add_parser(subparsers)
     for name, help_text in (
         ("record", "Record recent completed Yahoo 1-minute bars"),
         ("qc", "Validate stored bar structure; exits nonzero for missing/invalid data"),
@@ -96,6 +100,10 @@ def main(argv: list[str] | None = None) -> int:
     args = parser().parse_args(argv)
     if args.command == "research":
         return research_cli.main(args)
+    if args.command == "lab":
+        return lab_cli.main(args)
+    if args.command == "study":
+        return study_cli.main(args)
     try:
         report: dict[str, Any]
         if args.command == "catalog":
