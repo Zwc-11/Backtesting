@@ -19,6 +19,8 @@ import asyncio
 import contextlib
 import json
 import os
+import signal
+import threading
 import time
 from collections import Counter, deque
 from collections.abc import Callable
@@ -235,10 +237,12 @@ class BookDesk:
                 for candidate in strategy.evaluate(decided):
                     strategy.release(candidate.setup, "cancelled", "warm-up")
 
-    def warm_up(self, frame: pl.DataFrame) -> None:
+    def warm_up(self, frame: pl.DataFrame, halt: threading.Event | None = None) -> None:
         if frame.height:
             self.warm["from"] = iso(frame["ts_end"].min())  # type: ignore[arg-type]
         for end, batch in minutes(frame):
+            if halt is not None and halt.is_set():
+                return  # the desk is shutting down
             self.warm_step(end, batch)
             self.last_end = end
             self.warm["minutes"] += 1
@@ -494,6 +498,7 @@ class PaperDesk:
         self.notes: deque[dict[str, Any]] = deque(maxlen=50)
         self.last_bar: datetime | None = None
         self.stop = asyncio.Event()
+        self.halt = threading.Event()  # tells the warm-up thread to stop early
         self.warm_message = ""
 
     def note(self, level: str, message: str) -> None:
@@ -550,7 +555,7 @@ class PaperDesk:
         if any(b.spec.warmup == "archive" for b in self.books):
             with httpx.Client(timeout=60, headers=USER_AGENT, follow_redirects=True) as client:
                 for item in self.universe.instruments:
-                    if item.history != "binance-spot":
+                    if item.history != "binance-spot" or self.halt.is_set():
                         continue
 
                     def progress(message: str) -> None:
@@ -560,12 +565,16 @@ class PaperDesk:
                         client, self.root, item.archive_symbol, start, now, progress
                     )
         for book in self.books:
+            if self.halt.is_set():
+                return
             book.status = "warming"
             self.warm_message = f"replaying history for {book.book.id}"
             frame = warmup_frame(
                 self.root, self.universe, book.spec.warmup, start, now, tails, self.settlement
             )
-            book.warm_up(frame)
+            book.warm_up(frame, self.halt)
+            if self.halt.is_set():
+                return
             book.status = "ready"
         self.warm_message = ""
 
@@ -693,6 +702,24 @@ class PaperDesk:
             write_atomic(self.dir / "desk.json", data)
 
     # --- main loop -----------------------------------------------------------------------
+    def install_signal_handlers(self, loop: asyncio.AbstractEventLoop) -> None:
+        """Ctrl+C (and SIGTERM, or Ctrl+Break on Windows) stop the desk gracefully.
+
+        Handlers are installed explicitly because a process started in the background
+        can inherit an ignored SIGINT. A second Ctrl+C interrupts immediately.
+        """
+
+        def request_stop(number: int, frame: object) -> None:
+            loop.call_soon_threadsafe(self.stop.set)
+            if number == signal.SIGINT:
+                signal.signal(signal.SIGINT, signal.default_int_handler)
+
+        for name in ("SIGINT", "SIGTERM", "SIGBREAK"):
+            number = getattr(signal, name, None)
+            if number is not None:
+                with contextlib.suppress(ValueError, OSError):
+                    signal.signal(number, request_stop)
+
     def tick(self, now: datetime) -> None:
         for book in self.books:
             if book.status == "ready":
@@ -720,6 +747,7 @@ class PaperDesk:
         self.dir.mkdir(parents=True, exist_ok=True)
         with writer_lock(self.dir):
             self.stop = asyncio.Event()
+            self.install_signal_handlers(asyncio.get_running_loop())
             async with httpx.AsyncClient(headers=USER_AGENT) as client:
                 await self.clock.measure(client)
                 if self.clock.error:
@@ -733,6 +761,7 @@ class PaperDesk:
                     await self._loop(client, duration, background)
                 finally:
                     self.stop.set()
+                    self.halt.set()
                     for task in background:
                         task.cancel()
                     with contextlib.suppress(asyncio.TimeoutError):
