@@ -602,7 +602,7 @@ async function loadRuns() {
       el("span", { class: "id" }, run.book),
       words(run.phase),
       run.period ? `${day(run.period.report_from)} to ${day(run.period.end)}` : DASH,
-      run.variant === "trade-bar" ? "Trade bars" : "Quotes",
+      run.variant === "trade-bar" ? "Trade bars" : run.variant === "daily-model" ? "Daily models" : "Quotes",
       el("span", null, words(run.status), run.amended_code ? el("span", { class: "flag", title: "The lab code changed after the book was registered" }, "amended code") : null),
       n(signed(pnl), tone(pnl)),
       dayTime(run.finished_at),
@@ -631,20 +631,23 @@ async function selectRun(id) {
 function renderRun(detail) {
   $("run-detail").hidden = false;
   const run = detail.run;
+  const study = run.kind === "notebook-study";
   $("run-title").textContent = `${run.book}, ${run.phase} run`;
   const period = run.period || {};
-  const variant = run.variant === "trade-bar" ? "Trade-bar variants (archives carry trades, no quotes)" : "Quote versions";
-  $("run-subtitle").textContent = `${variant}. Reported ${day(period.report_from)} to ${day(period.end)}; calibration history from ${day(period.replay_start)}.`;
-  if (run.amended_code) $("run-subtitle").append(el("span", { class: "flag" }, "lab code changed after registration"));
+  let variant = "Quote versions";
+  if (run.variant === "trade-bar") variant = "Trade-bar variants (archives carry trades, no quotes)";
+  if (study) variant = `Daily model decisions over purged walk-forward folds (${(run.folds || []).length} test windows); models, penalties and thresholds are chosen inside each fold's training data`;
+  $("run-subtitle").textContent = `${variant}. Reported ${day(period.report_from)} to ${day(period.end)}; history from ${day(period.replay_start)}.`;
+  if (run.amended_code) $("run-subtitle").append(el("span", { class: "flag" }, "code changed after registration"));
   for (const button of $("scenario-switch").querySelectorAll("button")) button.setAttribute("aria-pressed", String(button.dataset.scenario === detail.scenario));
   const portfolio = detail.portfolio || {};
-  const episodes = portfolio.episodes14 || {};
   const pnl = portfolio.end_nav - portfolio.start_nav;
+  const windows = study ? portfolio.sessions5 || {} : portfolio.episodes14 || {};
   $("run-figures").replaceChildren(
     figure("Net asset value", num(portfolio.end_nav, 0), `from ${num(portfolio.start_nav, 0)}`),
     figure("Return", pct(pnl / portfolio.start_nav, 2), signed(pnl, 0), tone(pnl)),
-    figure("Fourteen-day windows", num(episodes.episodes, 0), `${num(episodes.at_least_10pct || 0, 0)} reached +10%`),
-    figure("Worst window", pct(episodes.worst, 2), `best ${pct(episodes.best, 2)}`, tone(episodes.worst)),
+    figure(study ? "Five-session windows" : "Fourteen-day windows", num(windows.episodes, 0), `${num(windows.at_least_10pct || 0, 0)} reached +10%`),
+    figure("Worst window", pct(windows.worst, 2), `best ${pct(windows.best, 2)}`, tone(windows.worst)),
   );
   lineChart($("run-chart"), portfolio.nav_daily || [], portfolio.start_nav, "This scenario recorded no daily marks.", false);
   const body = head($("run-strategies"), ["Strategy", ["Trades", true], ["Win rate", true], ["Net P&L", true], ["Mean net", true], ["Daily t (HAC)", true], ["Adjusted p", true], ["Max drawdown", true], "Exits"]);
@@ -654,8 +657,11 @@ function renderRun(detail) {
     const e = data.events || {};
     const p = (detail.multiplicity || {})[sid] || {};
     const exits = Object.entries(s.exit_reasons || {}).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${words(k).toLowerCase()} ${v}`).join(", ");
-    const name = el("div", null, el("span", { class: "id" }, sid + "  "), data.title || "",
-      el("span", { class: "cell-sub" }, `armed ${num(e.armed || 0, 0)}, confirmed ${num(e.confirmed || 0, 0)}, filled ${num(e.filled || 0, 0)}, rejected ${num(e.rejected || 0, 0)}`));
+    let sub;
+    if (data.baseline_of) sub = "same number of names each day, ranked by the controls-only model";
+    else if (study) sub = `${num(e.decisions || 0, 0)} decisions, ${num(e.filled || 0, 0)} filled${data.sessions5 ? `; ${num(data.sessions5.at_least_10pct || 0, 0)} of ${num(data.sessions5.episodes || 0, 0)} five-session windows reached +10%` : ""}`;
+    else sub = `armed ${num(e.armed || 0, 0)}, confirmed ${num(e.confirmed || 0, 0)}, filled ${num(e.filled || 0, 0)}, rejected ${num(e.rejected || 0, 0)}`;
+    const name = el("div", null, el("span", { class: "id" }, sid + "  "), data.title || "", el("span", { class: "cell-sub" }, sub));
     const row = cells([
       name, n(num(s.trades || 0, 0)), n(plainPct(s.win_rate)), n(signed(s.net_pnl), tone(s.net_pnl)),
       n(finite(s.mean_net_bps) ? signed(s.mean_net_bps, 1) + " bps" : DASH, tone(s.mean_net_bps)),
@@ -671,7 +677,43 @@ function renderRun(detail) {
     body.append(row);
   }
   if (!Object.keys(strategies).length) emptyRow(body, 9, "This run has no strategy results.");
-  $("run-note").textContent = "Adjusted p comes from a block-bootstrap max-T test across this book's strategies, so it accounts for testing several at once. Mean net is per trade after costs. Select a strategy to filter the trades below.";
+  $("run-note").textContent = study
+    ? "Adjusted p comes from a block-bootstrap max-T test across every sleeve in this run, baselines included. Each strategy trades its own sleeve with equal starting capital; the chart combines the strategy sleeves. Select a row to filter the trades below."
+    : "Adjusted p comes from a block-bootstrap max-T test across this book's strategies, so it accounts for testing several at once. Mean net is per trade after costs. Select a strategy to filter the trades below.";
+  renderEvidence(detail, study);
+}
+function checksText(sid, checks) {
+  if (!checks) return DASH;
+  const parts = [];
+  for (const key of ["p_up10", "p_down10"]) {
+    if (checks[key] && finite(checks[key].skill)) parts.push(`${key === "p_up10" ? "+10%" : "−10%"} touch skill ${signed(checks[key].skill, 3)}`);
+  }
+  if (checks.breakdown_model && finite(checks.breakdown_model.skill)) parts.push(`breakdown model skill ${signed(checks.breakdown_model.skill, 3)} on ${num(checks.breakdown_model.events, 0)} events`);
+  for (const [key, label] of [["signal_volatility_rank_correlation", "signal vs volatility"], ["signal_sigma20_correlation", "signal vs volatility"], ["signal_beta60_correlation", "signal vs beta"], ["signal_beta_correlation", "signal vs beta"], ["signal_trend_correlation", "signal vs trend"], ["rank_correlation_with_next_day", "next-day rank correlation"], ["rank_correlation_dropping_unfinished", "same, dropping unfinished"]]) {
+    if (finite(checks[key])) parts.push(`${label} ${signed(checks[key], 3)}`);
+  }
+  if (finite(checks.candidate_mean_beta60)) parts.push(`candidate beta ${num(checks.candidate_mean_beta60, 2)} vs universe ${num(checks.universe_mean_beta60, 2)}`);
+  return parts.length ? parts.join("; ") : DASH;
+}
+function renderEvidence(detail, study) {
+  $("run-evidence").hidden = !study;
+  if (!study) return;
+  const body = head($("run-evidence-table"), ["Strategy", ["Test rows", true], ["Incremental R²", true], ["Rank correlation", true], ["Slope θ", true], ["95% interval", true], "Checks in the last fold"]);
+  const folds = head($("run-folds"), ["Strategy", "Test window", ["Penalty", true], ["Signal quantile", true], ["Threshold", true], ["Allowance", true], ["Training rows", true], ["Decisions", true]]);
+  for (const [sid, data] of Object.entries(detail.strategies || {})) {
+    const d = data.diagnostics;
+    if (!d) continue;
+    const inc = d.incremental || {};
+    const last = (d.folds || [])[d.folds.length - 1] || {};
+    const interval = inc.theta_95 ? `${signed(inc.theta_95[0], 4)} to ${signed(inc.theta_95[1], 4)}` : DASH;
+    body.append(cells([
+      el("span", { class: "id" }, sid), n(num(inc.rows, 0)), n(finite(inc.r2_incremental) ? signed(inc.r2_incremental * 100, 3) + "%" : DASH, tone(inc.r2_incremental)),
+      n(signed(inc.ic_incremental, 3), tone(inc.ic_incremental)), n(signed(inc.theta, 4), tone(inc.theta)), n(interval), checksText(sid, last.checks),
+    ]));
+    for (const fold of d.folds || []) {
+      folds.append(cells([el("span", { class: "id" }, sid), fold.test, n(fold.ridge_penalty), n(num(fold.signal_quantile, 2)), n(num(fold.threshold, 4)), n(num(fold.allowance, 5)), n(num(fold.training_rows, 0)), n(num(fold.decisions, 0))]));
+    }
+  }
 }
 async function loadRunTrades() {
   if (!state.run) return;

@@ -28,7 +28,10 @@ results; every strategy's status; registered runs; relationships; data health.
 | h09 Selling bursts with shrinking damage | as h09t only | quote book | the primary version compares quoted spreads |
 | h09t (trade-bar variant of 9, no spread rule) | crypto | trade-bar book | separately registered variant |
 | h10 Thin-session break survives the handoff | crypto (NYSE-open handoff) | both books | equities need pre-market bars |
-| n01–n10 (experimental notebook) | not implemented | not implemented | see the catalog for each data requirement |
+| n01, n03, n08 (experimental notebook) | daily Binance study incl. delisted coins | — | model strategies; see [NOTEBOOK.md](NOTEBOOK.md) |
+| n04 (experimental notebook) | minute-data study, 28 coins | — | censored recovery clocks; see [NOTEBOOK.md](NOTEBOOK.md) |
+| n02, n05 | next | — | data in place, models not implemented |
+| n06, n07, n09, n10 | blocked | — | need order-book depth or event-level trades |
 
 `uv run --frozen xasset lab catalog` prints the same table with data needs and
 blockers; the dashboard's Strategies page renders it.
@@ -201,5 +204,6 @@ rather than fills.
   (survivorship caveat documented in the universe file).
 - Trade-bar variants are separate hypotheses from the primary quote versions.
 - US equities are replayed only; a US paper desk needs SIP-quality quotes.
-- The experimental notebook (n01–n10) defines model-based research designs; they are
-  catalogued with their data requirements and are not implemented.
+- Notebook strategies 1, 3, 4 and 8 run as registered walk-forward studies
+  ([NOTEBOOK.md](NOTEBOOK.md)); 2 and 5 are next; 6, 7, 9 and 10 need data that no
+  public archive provides. Notebook strategies are not yet wired to the paper desk.
