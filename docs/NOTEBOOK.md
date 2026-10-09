@@ -58,6 +58,19 @@ reaching +10%, out-of-sample incremental R², rank correlation, the residualized
 (calibration skill of rare-event and breakdown probabilities, correlation of the
 signal with volatility, beta and trend, results without unfinished excursions).
 
+## Known simplifications
+
+- n08's tail signal and payoff come from first-stage classifiers; the second-stage
+  return models are fitted on those classifiers' in-sample values for training rows
+  (no cross-fitting). Test folds stay strictly out of sample, so reported results
+  are unbiased for this procedure, but the second stage may lean slightly more on
+  the signal than cross-fitting would allow.
+- n04 matches excursions by size and the coin's own volatility; time of day and
+  market direction are absorbed by comparing each coin with its own reference window
+  rather than by an explicit duration model with those covariates.
+- Spread and impact tiers are assumptions. Daily bars cannot see intraday liquidity,
+  so the strategies trade the next open with those assumed costs.
+
 ## Commands
 
 ```bash
