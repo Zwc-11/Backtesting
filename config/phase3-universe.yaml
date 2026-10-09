@@ -1,0 +1,423 @@
+# Phase 3 planning universe. New CFD mappings/scales are UNVERIFIED.
+# Do not ingest those symbols until their registered metadata prerequisite is resolved.
+# Regional calendars define reference cash sessions, not full CFD trading hours.
+instruments:
+- id: COIN
+  asset_class: equity
+  tier: A
+  venue: XNYS
+  currency: USD
+  calendar: XNYS
+  session: regular
+  alpaca_symbol: COIN
+  alpaca_feed: iex
+  sources:
+  - alpaca
+- id: CVX
+  asset_class: equity
+  tier: A
+  venue: XNYS
+  currency: USD
+  calendar: XNYS
+  session: regular
+  alpaca_symbol: CVX
+  alpaca_feed: iex
+  sources:
+  - alpaca
+- id: DAL
+  asset_class: equity
+  tier: A
+  venue: XNYS
+  currency: USD
+  calendar: XNYS
+  session: regular
+  alpaca_symbol: DAL
+  alpaca_feed: iex
+  sources:
+  - alpaca
+- id: GDX
+  asset_class: etf
+  tier: A
+  venue: XNYS
+  currency: USD
+  calendar: XNYS
+  session: regular
+  alpaca_symbol: GDX
+  alpaca_feed: iex
+  sources:
+  - alpaca
+- id: HAL
+  asset_class: equity
+  tier: A
+  venue: XNYS
+  currency: USD
+  calendar: XNYS
+  session: regular
+  alpaca_symbol: HAL
+  alpaca_feed: iex
+  sources:
+  - alpaca
+- id: IEF
+  asset_class: etf
+  tier: A
+  venue: XNYS
+  currency: USD
+  calendar: XNYS
+  session: regular
+  alpaca_symbol: IEF
+  alpaca_feed: iex
+  sources:
+  - alpaca
+- id: JETS
+  asset_class: etf
+  tier: A
+  venue: XNYS
+  currency: USD
+  calendar: XNYS
+  session: regular
+  alpaca_symbol: JETS
+  alpaca_feed: iex
+  sources:
+  - alpaca
+- id: KRE
+  asset_class: etf
+  tier: A
+  venue: XNYS
+  currency: USD
+  calendar: XNYS
+  session: regular
+  alpaca_symbol: KRE
+  alpaca_feed: iex
+  sources:
+  - alpaca
+- id: MARA
+  asset_class: equity
+  tier: A
+  venue: XNYS
+  currency: USD
+  calendar: XNYS
+  session: regular
+  alpaca_symbol: MARA
+  alpaca_feed: iex
+  sources:
+  - alpaca
+- id: MSTR
+  asset_class: equity
+  tier: A
+  venue: XNYS
+  currency: USD
+  calendar: XNYS
+  session: regular
+  alpaca_symbol: MSTR
+  alpaca_feed: iex
+  sources:
+  - alpaca
+- id: NEM
+  asset_class: equity
+  tier: A
+  venue: XNYS
+  currency: USD
+  calendar: XNYS
+  session: regular
+  alpaca_symbol: NEM
+  alpaca_feed: iex
+  sources:
+  - alpaca
+- id: OXY
+  asset_class: equity
+  tier: A
+  venue: XNYS
+  currency: USD
+  calendar: XNYS
+  session: regular
+  alpaca_symbol: OXY
+  alpaca_feed: iex
+  sources:
+  - alpaca
+- id: QQQ
+  asset_class: etf
+  tier: A
+  venue: XNYS
+  currency: USD
+  calendar: XNYS
+  session: regular
+  alpaca_symbol: QQQ
+  alpaca_feed: iex
+  sources:
+  - alpaca
+- id: RIOT
+  asset_class: equity
+  tier: A
+  venue: XNYS
+  currency: USD
+  calendar: XNYS
+  session: regular
+  alpaca_symbol: RIOT
+  alpaca_feed: iex
+  sources:
+  - alpaca
+- id: SPY
+  asset_class: etf
+  tier: A
+  venue: XNYS
+  currency: USD
+  calendar: XNYS
+  session: regular
+  alpaca_symbol: SPY
+  alpaca_feed: iex
+  sources:
+  - alpaca
+- id: TLT
+  asset_class: etf
+  tier: A
+  venue: XNYS
+  currency: USD
+  calendar: XNYS
+  session: regular
+  alpaca_symbol: TLT
+  alpaca_feed: iex
+  sources:
+  - alpaca
+- id: UAL
+  asset_class: equity
+  tier: A
+  venue: XNYS
+  currency: USD
+  calendar: XNYS
+  session: regular
+  alpaca_symbol: UAL
+  alpaca_feed: iex
+  sources:
+  - alpaca
+- id: XLB
+  asset_class: etf
+  tier: A
+  venue: XNYS
+  currency: USD
+  calendar: XNYS
+  session: regular
+  alpaca_symbol: XLB
+  alpaca_feed: iex
+  sources:
+  - alpaca
+- id: XLC
+  asset_class: etf
+  tier: A
+  venue: XNYS
+  currency: USD
+  calendar: XNYS
+  session: regular
+  alpaca_symbol: XLC
+  alpaca_feed: iex
+  sources:
+  - alpaca
+- id: XLE
+  asset_class: etf
+  tier: A
+  venue: XNYS
+  currency: USD
+  calendar: XNYS
+  session: regular
+  alpaca_symbol: XLE
+  alpaca_feed: iex
+  sources:
+  - alpaca
+- id: XLF
+  asset_class: etf
+  tier: A
+  venue: XNYS
+  currency: USD
+  calendar: XNYS
+  session: regular
+  alpaca_symbol: XLF
+  alpaca_feed: iex
+  sources:
+  - alpaca
+- id: XLI
+  asset_class: etf
+  tier: A
+  venue: XNYS
+  currency: USD
+  calendar: XNYS
+  session: regular
+  alpaca_symbol: XLI
+  alpaca_feed: iex
+  sources:
+  - alpaca
+- id: XLK
+  asset_class: etf
+  tier: A
+  venue: XNYS
+  currency: USD
+  calendar: XNYS
+  session: regular
+  alpaca_symbol: XLK
+  alpaca_feed: iex
+  sources:
+  - alpaca
+- id: XLP
+  asset_class: etf
+  tier: A
+  venue: XNYS
+  currency: USD
+  calendar: XNYS
+  session: regular
+  alpaca_symbol: XLP
+  alpaca_feed: iex
+  sources:
+  - alpaca
+- id: XLRE
+  asset_class: etf
+  tier: A
+  venue: XNYS
+  currency: USD
+  calendar: XNYS
+  session: regular
+  alpaca_symbol: XLRE
+  alpaca_feed: iex
+  sources:
+  - alpaca
+- id: XLU
+  asset_class: etf
+  tier: A
+  venue: XNYS
+  currency: USD
+  calendar: XNYS
+  session: regular
+  alpaca_symbol: XLU
+  alpaca_feed: iex
+  sources:
+  - alpaca
+- id: XLV
+  asset_class: etf
+  tier: A
+  venue: XNYS
+  currency: USD
+  calendar: XNYS
+  session: regular
+  alpaca_symbol: XLV
+  alpaca_feed: iex
+  sources:
+  - alpaca
+- id: XLY
+  asset_class: etf
+  tier: A
+  venue: XNYS
+  currency: USD
+  calendar: XNYS
+  session: regular
+  alpaca_symbol: XLY
+  alpaca_feed: iex
+  sources:
+  - alpaca
+- id: XOM
+  asset_class: equity
+  tier: A
+  venue: XNYS
+  currency: USD
+  calendar: XNYS
+  session: regular
+  alpaca_symbol: XOM
+  alpaca_feed: iex
+  sources:
+  - alpaca
+- id: BTC_USDT
+  asset_class: crypto
+  tier: A
+  venue: BINANCE
+  currency: USDT
+  lot_size: 1.0e-05
+  session: all
+  binance_symbol: BTCUSDT
+  sources:
+  - binance
+- id: WTI_CFD
+  asset_class: cfd
+  tier: A
+  venue: DUKASCOPY
+  currency: USD
+  session: all
+  dukascopy_symbol: LIGHTCMDUSD
+  price_scale: 1000
+  sources:
+  - dukascopy
+  proxy: true
+- id: BRENT_CFD
+  asset_class: cfd
+  tier: A
+  venue: DUKASCOPY
+  currency: USD
+  session: all
+  dukascopy_symbol: BRENTCMDUSD
+  price_scale: 1000
+  sources:
+  - dukascopy
+  proxy: true
+- id: SP500_CFD
+  asset_class: cfd
+  tier: A
+  venue: DUKASCOPY
+  currency: USD
+  session: all
+  dukascopy_symbol: USA500IDXUSD
+  price_scale: 1000
+  sources:
+  - dukascopy
+  proxy: true
+- id: NASDAQ_CFD
+  asset_class: cfd
+  tier: A
+  venue: DUKASCOPY
+  currency: USD
+  session: all
+  dukascopy_symbol: USATECHIDXUSD
+  price_scale: 1000
+  sources:
+  - dukascopy
+  proxy: true
+- id: NIKKEI_CFD
+  asset_class: cfd
+  tier: A
+  venue: DUKASCOPY
+  currency: JPY
+  session: all
+  dukascopy_symbol: JPNIDXJPY
+  price_scale: 1000
+  sources:
+  - dukascopy
+  proxy: true
+  calendar: XTKS
+- id: DAX_CFD
+  asset_class: cfd
+  tier: A
+  venue: DUKASCOPY
+  currency: EUR
+  session: all
+  dukascopy_symbol: DEUIDXEUR
+  price_scale: 1000
+  sources:
+  - dukascopy
+  proxy: true
+  calendar: XETR
+- id: XAUUSD
+  asset_class: cfd
+  tier: A
+  venue: DUKASCOPY
+  currency: USD
+  session: all
+  dukascopy_symbol: XAUUSD
+  price_scale: 1000
+  sources:
+  - dukascopy
+  proxy: true
+- id: EURUSD
+  asset_class: fx
+  tier: A
+  venue: DUKASCOPY
+  currency: USD
+  session: all
+  dukascopy_symbol: EURUSD
+  price_scale: 100000
+  sources:
+  - dukascopy
+  proxy: false

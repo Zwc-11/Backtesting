@@ -1,0 +1,47 @@
+services:
+  dashboard:
+    build: .
+    image: xasset:local
+    restart: unless-stopped
+    user: "${XASSET_UID:-1000}:${XASSET_GID:-1000}"
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      XASSET_DASHBOARD_TOKEN: "${XASSET_DASHBOARD_TOKEN:?Set a private dashboard token}"
+    volumes:
+      - "${XASSET_DATA_DIR:-./data}:/app/data:ro"
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+  monitor:
+    image: xasset:local
+    restart: unless-stopped
+    user: "${XASSET_UID:-1000}:${XASSET_GID:-1000}"
+    command: [monitor, --config, /app/config/monitor.yaml]
+    environment:
+      ALPACA_API_KEY: "${ALPACA_API_KEY:?Set Alpaca market-data credentials}"
+      ALPACA_SECRET_KEY: "${ALPACA_SECRET_KEY:?Set Alpaca market-data credentials}"
+      TELEGRAM_BOT_TOKEN: "${TELEGRAM_BOT_TOKEN:-}"
+      TELEGRAM_CHAT_ID: "${TELEGRAM_CHAT_ID:-}"
+      DISCORD_WEBHOOK_URL: "${DISCORD_WEBHOOK_URL:-}"
+    volumes:
+      - "${XASSET_DATA_DIR:-./data}:/app/data"
+      - ./config/monitor.yaml:/app/config/monitor.yaml:ro
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    healthcheck:
+      test: [CMD, python, -c, "import json,datetime; d=json.load(open('/app/data/monitor/latest.json')); age=(datetime.datetime.now(datetime.timezone.utc)-datetime.datetime.fromisoformat(d['as_of'])).total_seconds(); assert age<180"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: json-file
+      options: {max-size: 10m, max-file: "3"}

@@ -1,0 +1,41 @@
+# Illustrative assumptions only. Replace with measured venue/instrument costs
+# and evidence before any experiment can become a candidate.
+currency: USD
+profiles:
+  equity:
+    commission_bps: 0
+    spread_bps: 2
+    slippage_bps: 1
+    calibrated: false
+    evidence: Illustrative liquid-equity assumptions; calibration pending.
+  etf:
+    commission_bps: 0
+    spread_bps: 1
+    slippage_bps: 1
+    calibrated: false
+    evidence: Illustrative liquid-ETF assumptions; calibration pending.
+  crypto:
+    commission_bps: 10
+    spread_bps: 2
+    slippage_bps: 2
+    calibrated: false
+    evidence: Illustrative taker-cost assumptions; venue/account calibration pending.
+  fx:
+    commission_bps: 0.5
+    spread_bps: 1
+    slippage_bps: 1
+    calibrated: false
+    evidence: Illustrative FX assumptions; quote spread and broker calibration pending.
+  cfd:
+    commission_bps: 1
+    spread_bps: 3
+    slippage_bps: 2
+    calibrated: false
+    evidence: Illustrative CFD assumptions; broker and funding calibration pending.
+  futures:
+    commission_bps: 0
+    commission_per_unit: 2.5
+    spread_bps: 1
+    slippage_bps: 1
+    calibrated: false
+    evidence: Illustrative per-contract assumptions; exchange/contract calibration pending.

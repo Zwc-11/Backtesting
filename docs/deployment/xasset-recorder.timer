@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily xasset forward recording
+
+[Timer]
+OnCalendar=*-*-* 00:10:00 UTC
+Persistent=true
+RandomizedDelaySec=60
+Unit=xasset-recorder.service
+
+[Install]
+WantedBy=timers.target

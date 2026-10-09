@@ -1,0 +1,67 @@
+# Phase 1 pilot: distinct quote currencies and venue semantics get distinct IDs.
+instruments:
+  - id: BTC_USDT
+    asset_class: crypto
+    tier: A
+    venue: BINANCE
+    currency: USDT
+    lot_size: 0.00001
+    session: all
+    binance_symbol: BTCUSDT
+    sources: [binance]
+  - id: ETH_USDT
+    asset_class: crypto
+    tier: A
+    venue: BINANCE
+    currency: USDT
+    lot_size: 0.0001
+    session: all
+    binance_symbol: ETHUSDT
+    sources: [binance]
+  - id: BTC_USDT_PERP
+    asset_class: crypto
+    tier: A
+    venue: BINANCE_USDM
+    currency: USDT
+    lot_size: 0.001
+    session: all
+    binance_symbol: BTCUSDT
+    binance_market: um
+    sources: [binance]
+  - id: EURUSD
+    asset_class: fx
+    tier: A
+    venue: DUKASCOPY
+    session: all
+    dukascopy_symbol: EURUSD
+    price_scale: 100000
+    sources: [dukascopy]
+  - id: XAUUSD
+    asset_class: cfd
+    tier: A
+    venue: DUKASCOPY
+    session: all
+    dukascopy_symbol: XAUUSD
+    price_scale: 1000
+    sources: [dukascopy]
+    proxy: true
+  - id: SPY
+    asset_class: etf
+    tier: A
+    venue: XNYS
+    calendar: XNYS
+    session: regular
+    alpaca_symbol: SPY
+    alpaca_feed: iex
+    yahoo_symbol: SPY
+    sources: [alpaca, yahoo]
+  - id: XLE
+    asset_class: etf
+    tier: A
+    venue: XNYS
+    calendar: XNYS
+    session: regular
+    alpaca_symbol: XLE
+    alpaca_feed: iex
+    yahoo_symbol: XLE
+    sources: [alpaca, yahoo]

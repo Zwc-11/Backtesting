@@ -1,0 +1,41 @@
+interval_seconds: 60
+history_minutes: 180
+settlement_seconds: 60
+stale_seconds: 240
+volatility_window: 60
+move_z: 4.0
+residual_z: 4.0
+regime_change: 0.5
+cooldown_seconds: 1800
+alert_mode: log
+delivery_enabled: false
+events: []
+instruments:
+  - id: SPY_LIVE_IEX
+    asset_class: etf
+    tier: A
+    venue: IEX
+    currency: USD
+    calendar: XNYS
+    session: regular
+    alpaca_symbol: SPY
+    alpaca_feed: iex
+    sources: [alpaca]
+  - id: BTC_KRAKEN
+    asset_class: crypto
+    tier: A
+    venue: KRAKEN
+    currency: USD
+    session: all
+    lot_size: 0.00001
+    kraken_symbol: XBTUSD
+    sources: [kraken]
+  - id: BTC_HYPERLIQUID
+    asset_class: futures
+    tier: A
+    venue: HYPERLIQUID
+    currency: USDC
+    session: all
+    lot_size: 0.00001
+    hyperliquid_symbol: BTC
+    sources: [hyperliquid]

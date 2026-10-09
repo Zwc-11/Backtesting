@@ -1,0 +1,43 @@
+# A small Tier B pilot. Expand after recorder coverage is verified.
+# Yahoo front-month symbols are NOT explicit contracts or roll-adjusted futures.
+instruments:
+  - id: ES_FRONT
+    asset_class: futures
+    tier: B
+    venue: CME
+    calendar: null
+    session: all
+    yahoo_symbol: ES=F
+    proxy: true
+  - id: CL_FRONT
+    asset_class: futures
+    tier: B
+    venue: NYMEX
+    calendar: null
+    session: all
+    yahoo_symbol: CL=F
+    proxy: true
+  - id: TOYOTA_JP
+    asset_class: equity
+    tier: B
+    venue: XTKS
+    currency: JPY
+    calendar: XTKS
+    session: regular
+    yahoo_symbol: 7203.T
+  - id: HSBC_HK
+    asset_class: equity
+    tier: B
+    venue: XHKG
+    currency: HKD
+    calendar: XHKG
+    session: regular
+    yahoo_symbol: 0005.HK
+  - id: SHELL_UK
+    asset_class: equity
+    tier: B
+    venue: XLON
+    currency: GBP
+    calendar: XLON
+    session: regular
+    yahoo_symbol: SHEL.L

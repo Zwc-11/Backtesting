@@ -1,0 +1,18 @@
+name: Feature leakage gate
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  future-truncation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.12.19"
+      - run: uv sync --locked
+      - run: >-
+          uv run --frozen pytest tests/test_no_lookahead.py tests/test_adjust_roll.py
+          tests/test_phase1_quality.py::test_resampling_is_invariant_to_future_truncation
+          tests/test_native_engine.py tests/test_research_registry.py
+          tests/test_phase3_signals.py tests/test_experiment_suite.py

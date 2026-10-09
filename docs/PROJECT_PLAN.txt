@@ -1,0 +1,540 @@
+Cross-Asset Backtesting & World Monitor — Project Plan
+Oct 7, 2026 · @Caesar
+The system is buildable at $0 for US stocks, crypto, FX and commodity/index CFDs at 1-minute resolution. Deep 1-minute history for exchange-traded futures is the one piece that is not free; the plan covers it with a free proxy and a low-cost one-off purchase.
+Data sources: what is free at 1-minute
+Four asset groups have free multi-year 1-minute history; futures and non-US stocks do not. Provider limits were read from the linked pages, and public endpoints were called from a cloud sandbox on 2026-10-07.
+Asset group
+Source
+1-minute history
+Real-time
+Limits that matter
+US stocks and ETFs
+Alpaca Basic, free
+Since 2016
+IEX only, 30 websocket symbols
+200 calls/min; the newest 15 minutes are excluded
+US stocks, second source
+Massive Stocks Basic (formerly Polygon), free
+2 years
+None (end-of-day)
+5 calls/min
+Crypto spot and perpetuals
+Binance public archive
+Full listing history; 1s and 1m klines, trades
+No (archive only)
+Bulk zips per symbol and month; 618 pairs were pulled this week
+Crypto, live
+Kraken and Hyperliquid public APIs
+Recent only
+Yes
+Both answered without a key
+FX, gold, oil, gas, copper, index CFDs
+Dukascopy datafeed (ticks, build 1m yourself)
+FX and gold since 2003; Brent 2011; WTI light 2013; gas and copper 2012; S&P 500, Nasdaq 100, Nikkei 2011; DAX 2012
+No
+CFD quotes, not exchange futures: no exchange volume; bursts get HTTP 503. One hourly WTI file returned 11,115 ticks
+FX, second source
+HistData
+1-minute bars
+No
+FX pairs; manual download per pair and year
+Futures front months, non-US stocks, indices
+Yahoo chart API (unofficial)
+Rolling 30 days only
+Delayed
+7 days per request, no service guarantee. CL, BZ, ES, NQ, GC, NG, ZN, HG, 6E returned about 9,940 bars per 7 days; Hong Kong, Tokyo and London stocks answered
+Exchange futures, deep history
+Databento CME Globex, paid per GB
+16+ years of OHLCV-1m on the usage-based plan
+Licence fees, or $199/month Standard
+$125 signup credit, expires after 6 months; price shown before download
+Futures through your broker
+IBKR TWS API
+Active contracts; expired contracts only for 2 years after expiry; nothing for delisted securities
+Yes: CME, NYMEX, COMEX, CBOT Level 1 at $1.55/month each
+TWS or Gateway must be running; request pacing limits
+Every asset class, in-cloud only
+QuantConnect free tier
+Minute to daily data inside their cloud
+No live trading on free
+1 backtest node, 1 research node; data cannot be exported
+Macro, filings, news
+FRED, EIA, SEC EDGAR, GDELT
+Daily or weekly series; GDELT updates every 15 minutes
+GDELT and EDGAR near-live
+EIA and FRED need a free key. EDGAR and GDELT answered; FRED, CFTC and Stooq did not respond from the sandbox and need checking from your PC
+The gap is specific: no legal free source has years of 1-minute bars for CME futures or for single stocks outside the US. The plan handles both by recording them forward from day one and by using CFD proxies for history.
+Changes to your plan
+The idea holds; twelve adjustments make it buildable and keep its results honest.
+#
+Type
+Change
+Why
+1
+Adjust
+Replace "every instrument, free, at 1-minute" with three tiers. Tier A: free deep history (US stocks and ETFs, crypto, FX, commodity and index CFDs). Tier B: recorded forward from today (futures front months, non-US stocks, indices). Tier C: CME futures history bought once with the Databento credit.
+Matches what the sources actually provide.
+2
+Add
+Start the forward recorder on day one.
+Yahoo keeps about 30 days of 1-minute bars; every day not saved is lost.
+3
+Adjust
+Do not write a new backtest engine. Hindsight stays the validation core; NautilusTrader 1.231 is the execution cross-check; QuantConnect cloud is the data cross-check.
+Your rule already routes all backtests through Hindsight, and hand-written engines are where look-ahead hides.
+4
+Add
+Extend Hindsight's gate with a doubled-cost run, a trial registry and a vault holdout.
+It already has purged, embargoed walk-forward, DSR and PBO; these three close the remaining holes.
+5
+Add
+A time-alignment layer: UTC storage, exchange calendars, stale-bar flags.
+Futures trade about 23 hours and stocks 6.5; without alignment, lead-lag results are artifacts of closed markets.
+6
+Add
+Continuous futures built from per-contract data with explicit roll rules.
+Yahoo's front-month series switches contract silently; a roll looks like a price jump.
+7
+Add
+A data-quality gate with cross-source checks before any bar is used.
+This week Yahoo gave mixed split-adjusted rows, unregistered reverse splits, and pre-market prices that differed by more than 2% between its own feeds.
+8
+Adjust
+Split the relationship map into a descriptive layer and a tradable layer.
+Correlation is not an edge. An edge becomes tradable only after a strategy built on it passes the gate.
+9
+Adjust
+Test 5-minute to multi-day horizons first, not 1-minute reaction trades.
+Costs sank every intraday small-cap rule this week and all five families in your BTC pipeline.
+10
+Add
+Keep equity work in ETFs and large caps.
+Free sources drop delisted tickers; survivorship matters least there.
+11
+Add
+The monitor imports the same feature code as the backtests, with a parity test in CI.
+Removes the gap between what was tested and what is watched live.
+12
+Drop
+Tick-level and sub-second ambitions, and stocks under $5.
+No free data, no latency edge, and the highest costs.
+Architecture
+Live feeds enter through the same ingest and feature code as history, so the monitor watches exactly what was tested. The two highlighted layers are the ones every other part depends on.
+Technology stack
+Every tool has one job; nothing here needs a paid licence.
+Layer
+Tool
+Role
+Language
+Python 3.12+
+One language for ingest, research and monitor; NautilusTrader requires 3.12 or newer.
+Environment
+uv
+Locked, reproducible installs.
+Storage
+Parquet (zstd), partitioned by asset class, symbol and month
+Canonical 1-minute bar store; immutable raw files kept beside it.
+Query
+DuckDB
+SQL over the Parquet store; also holds the catalog, trial registry and edge table.
+Dataframes
+Polars
+Fast resampling, joins on time, rolling windows.
+Calendars
+exchange_calendars
+Sessions, holidays and half-days per venue.
+Validation
+Hindsight (yours)
+Purged, embargoed walk-forward, DSR, PBO, stop-first fills, cost model.
+Execution cross-check
+NautilusTrader 1.231
+Event-driven rerun of anything that passes; later, live orders through its Interactive Brokers adapter.
+Data cross-check
+QuantConnect cloud
+Rerun on their minute data to catch errors in ours.
+Statistics
+statsmodels, scikit-learn, arch
+Lagged regressions with robust errors, cointegration, graphical lasso, GARCH volatility.
+Graph
+networkx
+Clustering and path queries; edges persist in DuckDB.
+Source clients
+alpaca-py, databento, ib_async, httpx, websockets
+One thin adapter per source.
+Scheduling
+cron or systemd timers
+Daily recorder and nightly rebuild; no orchestration framework.
+Monitor API
+FastAPI with WebSocket
+Serves live bars, detector output and map queries.
+Dashboard
+React, lightweight-charts, cytoscape.js
+Price panels and the interactive relationship graph.
+Alerts
+Telegram or Discord webhook
+Deduplicated, severity-tagged messages.
+Quality
+pytest, ruff, mypy strict, GitHub Actions
+Same bar as Hindsight, plus a leakage-gate workflow.
+Deployment
+Docker Compose
+Recorder, API and dashboard on your PC or a small server.
+Repository layout
+One repository, working name xasset, with a package per layer and one file per responsibility.
+xasset/
+  pyproject.toml                 dependencies, ruff, mypy strict, entry point
+  README.md                      quick start and status
+  Makefile                       ingest, qc, build, test, serve targets
+  docker-compose.yml             recorder, api, dashboard services
+  .env.example                   names of the API keys, no values
+  .github/workflows/
+    ci.yml                       ruff, mypy, pytest
+    leakage_gate.yml             runs tests/test_no_lookahead.py on every PR
+    recorder_health.yml          nightly check that yesterday's bars exist
+  config/
+    universe.yaml                instruments: id, asset class, tier, venue, session, sources in priority order
+    sources.yaml                 endpoints, rate limits, key names
+    costs.yaml                   commission, spread, slippage per asset class; stress multiplier = 2
+    rolls.yaml                   roll rule per futures root
+    events.yaml                  scheduled releases: EIA petroleum status, CPI, FOMC, payrolls
+    experiments/
+      oil_energy.yaml
+      index_futures_sectors.yaml
+      btc_crypto_equities.yaml
+      gold_miners.yaml
+      rates_usd_sectors.yaml
+      eia_event_study.yaml
+      session_handoff.yaml
+  src/xasset/
+    cli.py                       xasset ingest | record | qc | build | run | map | monitor
+    ingest/
+      base.py                    adapter interface: fetch(symbol, start, end) -> raw file
+      alpaca.py                  US stocks and ETFs, 1-minute since 2016
+      binance_archive.py         monthly kline zips, spot and USD-M
+      dukascopy.py               hourly tick files -> 1-minute bid/ask/mid bars
+      yahoo_recorder.py          rolling 1-minute recorder for Tier B
+      ibkr.py                    historical and streaming bars via ib_async
+      databento.py               CME OHLCV-1m, cost check before download
+      fred.py  eia.py  edgar.py  gdelt.py
+    store/
+      layout.py                  path scheme: bars/{asset}/{symbol}/{yyyy-mm}.parquet
+      writer.py                  atomic, idempotent writes
+      catalog.py                 DuckDB catalog: coverage, row counts, source
+      reader.py                  load(symbols, start, end, freq) -> aligned frame
+    normalize/
+      symbols.py                 one internal id per instrument across sources
+      timebase.py                everything to UTC, bar-end timestamps
+      calendars.py               session masks per venue
+      resample.py                1m -> 5m, 1h, 1d with session rules
+      adjust.py                  splits and dividends, point-in-time
+      futures_roll.py            per-contract store -> continuous series
+    qc/
+      checks.py                  gaps, duplicates, zero-volume runs, outlier prints, jump vs split table
+      reconcile.py               two-source comparison with tolerance
+      report.py                  daily data-health summary
+    features/
+      returns.py  volatility.py  session.py
+      leadlag.py                 lagged cross-correlation, lagged regression
+      residual.py                move of a follower given its drivers
+      registry.py                named, versioned feature definitions
+    research/
+      experiment.py              loads an experiment YAML, builds signals
+      hindsight_adapter.py       hands signals and bars to Hindsight
+      costs.py                   cost model from costs.yaml at 1x and 2x
+      trials.py                  trial registry: every run, parameters, result
+      vault.py                   locks the final holdout until explicitly opened
+      report.py                  verdict page per experiment
+    relmap/
+      estimators.py              correlation, Hayashi-Yoshida, lead-lag, partial correlation, cointegration, betas
+      significance.py            false-discovery control across pairs and lags
+      stability.py               does an edge survive the next window
+      graph.py                   edge table <-> networkx, clustering
+      export.py                  JSON for the dashboard
+    monitor/
+      stream.py                  websocket and polling clients
+      bars.py                    ticks and quotes -> live 1-minute bars
+      detectors.py               move, break, lead-fired, regime, data-health
+      alerts.py                  dedupe, severity, webhook
+      state.py                   rolling windows held in memory
+      api.py                     FastAPI routes and WebSocket
+    crosscheck/
+      nautilus_runner.py         rerun a passed strategy in NautilusTrader
+      lean_export.py             emit a QuantConnect algorithm for the same rule
+      reconcile.py               explain differences between engines
+  dashboard/
+    package.json
+    src/App.tsx  src/api.ts
+    src/views/Map.tsx            relationship graph
+    src/views/Monitor.tsx        live panels and alerts
+    src/views/Health.tsx         data coverage and feed status
+    src/views/Experiments.tsx    registry and verdicts
+  tests/
+    test_calendars.py  test_roll.py  test_qc.py  test_resample.py
+    test_leadlag.py              recovers a planted lag in synthetic data
+    test_no_lookahead.py         truncating the future must not change any feature
+    test_costs.py  test_feature_parity.py
+    fixtures/
+  docs/
+    DATA_SOURCES.md  VALIDATION.md  RECONCILIATION.md  RUNBOOK.md  DECISIONS.md
+  scripts/
+    backfill_tier_a.sh  start_recorder.sh  nightly.sh
+  data/                          git-ignored: raw/, bars/, features/, graph/, registry.duckdb
+Validation gate
+Rolling walk-forward with doubled costs is the right core, and it is not enough alone: it does not stop you from trying many ideas until one passes. A result counts only if it clears all ten rules.
+1. Register first. The hypothesis, parameter grid and data range go into the trial registry before any data is read. Every run is logged, including failures.
+2. Vault. The most recent 20% of history is locked and opened once per hypothesis family.
+3. Purged, embargoed walk-forward. Parameters are chosen on the training window only; the embargo is at least the longest holding period. Hindsight does this today.
+4. Costs at 1x and 2x. Commission, spread and slippage come from costs.yaml per asset class. The result must stay positive at 2x.
+5. Execution realism. A signal at bar close fills no earlier than the next bar's open; stops are checked first inside a bar; no fills on bars with no trades.
+6. Selection-adjusted statistics. Report the stitched out-of-sample t-statistic by day, the Deflated Sharpe Ratio and the Probability of Backtest Overfitting, using the registry's trial count.
+7. No single-trade dependence. The result must stay positive with the best 5% of trades removed, and no single fold may supply more than half the profit.
+8. Leakage tests in CI. Truncating future bars must not change any feature; delaying the signal one bar must shrink the edge, not flip or grow it.
+9. Independent audit. A second reviewer that did not write the code reads it for look-ahead before the verdict is accepted.
+10. Cross-engine rerun. Anything that passes is rerun in NautilusTrader; differences are explained in RECONCILIATION.md.
+This week's gapper work shows why each layer is there.
+Check
+Before
+After
+Day-2 dip rule, parameters fixed with hindsight vs re-chosen each year
++1.66% per trade (t 3.6)
++0.09% (t 0.9)
+Same walk-forward at doubled costs
++0.09%
+-1.30% (t -2.8)
+Same rule on 2012-2023 data it was not found on
++2.79% in the discovery window
++0.70% (t 1.0)
+Open-to-close rule after removing a same-day volume filter
++2.5% (t 3.4)
+-2.3% (t -4.7)
+Relationship map
+The map is a typed graph: instruments are nodes, and each edge records what kind of dependence was measured, at what horizon, how strong, and whether it held up afterwards.
+Edge type
+Estimator
+Horizons
+Question it answers
+Co-movement
+Rolling Pearson and Spearman on returns; Hayashi-Yoshida when bars are not synchronous
+5m, 1h, 1d
+What moves together?
+Lead-lag
+Cross-correlation at lags; lagged regression with robust errors, controlling for the follower's own lags and a market factor
+Lags 1-12 bars at 5m and 1h; 1-5 days
+Who moves first, and by how long?
+Direct link
+Partial correlation from a graphical lasso
+1h, 1d
+Is A tied to B directly, or only because both follow the index?
+Long-run tie
+Engle-Granger and Johansen cointegration
+1d
+Does the spread return to a level?
+Driver exposure
+Rolling beta to oil, rates, the dollar, gold, bitcoin and volatility
+1h, 1d
+How sensitive is this name to each macro driver?
+Event response
+Event study around scheduled releases
+60 minutes either side
+How does the pair react to inventories, CPI or a rate decision?
+An edge moves through four states, stored in one DuckDB table with source, target, type, horizon, lag, strength, t-statistic, adjusted p-value, window and status.
+1. Candidate: estimated on a rolling window.
+2. Significant: survives false-discovery control across every pair and lag tested, not a per-pair threshold.
+3. Stable: same sign and at least half the strength in the next window.
+4. Tradable: a strategy built on it has passed the validation gate.
+The dashboard shows states 2 and 3 as the descriptive map and highlights state 4. With about 150 instruments there are roughly 22,000 ordered pairs per horizon, so false-discovery control decides whether the map means anything.
+World monitor
+The monitor turns live feeds into 1-minute bars, runs the same features the backtests use, and alerts on six conditions.
+Feed
+Covers
+Timing
+Cost
+Interactive Brokers via ib_async
+Futures Level 1 on CME, NYMEX, COMEX, CBOT; your stock subscriptions
+Real-time
+$1.55/month per futures exchange; TWS or Gateway running on your PC
+Alpaca websocket
+US stocks and ETFs on IEX, 30 symbols
+Real-time
+Free
+Kraken and Hyperliquid websockets
+Crypto spot and perpetuals
+Real-time
+Free
+Yahoo poll, once a minute
+Everything else: global indices, non-US stocks, futures fallback
+Delayed
+Free
+GDELT
+News events worldwide
+Every 15 minutes
+Free
+SEC EDGAR
+Filings, including the dilution screen from this week
+Minutes
+Free
+events.yaml
+EIA petroleum status, CPI, payrolls, rate decisions
+Scheduled
+Free
+Detector
+Fires when
+Uses
+Move
+A return exceeds k times the instrument's own recent volatility
+Volatility feature
+Break
+A follower's move differs from what its drivers imply by more than k sigma
+Residual feature and driver betas
+Lead fired
+A driver has moved and the follower has not, on an edge in the tradable state only
+Edge table
+Regime
+The rolling correlation matrix shifts away from its recent average
+Co-movement edges
+Event window
+A scheduled release is inside the next or last 60 minutes
+events.yaml
+Data health
+A feed is stale, a bar is missing, or two sources disagree
+Quality checks
+Alerts are deduplicated, tagged by severity and logged, so their usefulness can be backtested later. The dashboard has four views: Map, Monitor, Health and Experiments.
+Roadmap
+Phases 0 to 2 are plumbing and produce no trading result; they are what makes every later result trustworthy. Effort figures are estimates for part-time work.
+Phase
+Definition of done
+Effort (estimate)
+0 Accounts and recorder
+Keys in .env; repo skeleton with CI green; recorder writes Tier B bars nightly; health check shows 5 sessions with no gaps
+2-3 days
+1 Bar store and quality gate
+Tier A backfilled for the version 1 universe; catalog reports coverage per symbol; continuous futures rebuilt from recorded contracts; Alpaca vs Massive and Dukascopy vs HistData reconcile within tolerance; nightly quality report
+2 weeks
+2 Validation gate
+Costs at 1x and 2x; every run in the trial registry; vault locked; leakage tests in CI; known-answer test reproduces this week's walk-forward figures (+0.09% and -1.30% per trade)
+1 week
+3 First experiments
+Seven verdict pages; any pass rerun in NautilusTrader and on CME bars; differences written to RECONCILIATION.md
+2 weeks
+4 Relationship map
+Edge table filled at 5m, 1h and 1d; false-discovery control applied; stability measured on the following window; Map view live
+2 weeks
+5 World monitor
+Live bars from at least three feeds; six detectors; alerts reach your phone; feature-parity test green; Health view live
+3 weeks
+6 Paper trading
+Only if something passed; IBKR paper account; 30 sessions of fills compared with the cost model
+30 trading days
+First experiments
+Seven cross-asset tests run first, all on Tier A data, each registered before it runs. Expect most to fail: a logged negative verdict is a deliverable, and it is what this week's gapper work and your BTC pipeline both produced.
+#
+Hypothesis
+Driver
+Followers
+Free data
+Horizons
+1
+Oil moves reach energy stocks with a delay, and airlines with the opposite sign
+WTI and Brent
+XLE, XOM, CVX, OXY, HAL; JETS, DAL, UAL
+Dukascopy oil ticks; Alpaca stocks
+5m, 1h, 1d
+2
+The overnight index move predicts which sectors lead or lag after the open
+S&P 500 and Nasdaq 100, 24-hour CFD
+Sector ETFs
+Dukascopy index CFDs; Alpaca
+Open to 10:30, open to close
+3
+Weekend and overnight bitcoin moves are not fully priced into crypto equities at the open
+BTC
+COIN, MSTR, MARA, RIOT
+Binance archive; Alpaca
+Next open, first hour, day
+4
+Gold leads the miners
+XAUUSD
+GDX, NEM, GOLD
+Dukascopy; Alpaca
+5m, 1h, 1d
+5
+Rate and dollar moves reach rate-sensitive sectors with a delay
+TLT and IEF; EURUSD
+KRE, XLF, XLU, XLK
+Alpaca; Dukascopy
+1h, 1d
+6
+Energy stocks under-react in the hour after the weekly inventory release
+WTI at the EIA release
+XLE and its largest members
+Same as 1, plus events.yaml
+5 to 60 minutes
+7
+The Asian and European sessions carry information into the US open
+Nikkei and DAX CFDs
+SPY, QQQ, sector ETFs
+Dukascopy; Alpaca
+US open to close
+Pass criteria are the validation gate, unchanged for every row: positive at doubled costs in purged walk-forward, selection-adjusted statistics from the registry, and a clean leakage test. Any finding on a CFD proxy is rechecked on real CME bars before it is trusted.
+Accounts, cost and what runs where
+The system runs at $0 until you want live futures quotes, which add $6.20 a month for the four CME-group exchanges.
+Item
+Cost
+Needed for
+Phase
+Alpaca account and API key
+$0
+US 1-minute history since 2016; IEX live stream
+0
+FRED and EIA API keys
+$0
+Macro series and inventory data
+0
+QuantConnect account
+$0
+Data cross-check in their cloud
+2
+Databento account
+$0 with the $125 credit
+CME 1-minute history. Sign up only when ready to download: the credit expires 6 months after signup
+3, only if a CFD-proxy result needs confirming
+IBKR Level 1 for CME, NYMEX, COMEX, CBOT
+$1.55/month each
+Real-time futures in the monitor
+5
+Always-on machine
+Your PC, or a small server (price not checked)
+The recorder must run every day
+0
+Disk
+Estimate: under 20 GB of bars for about 150 instruments
+Bar store; Dukascopy raw ticks can be deleted once bars are built
+1
+Where each part can run:
+• From this chat's sandbox: all code, tests, and backfills from the endpoints that answered without a key (Dukascopy, Binance archive, Yahoo, Kraken, Hyperliquid, GDELT, EDGAR). The sandbox is wiped between sessions, so it cannot host the recorder or the store.
+• On your PC or server: the recorder, the bar store, anything needing your keys (Alpaca, Databento, FRED, EIA), TWS or IB Gateway, and the dashboard.
+Limits and open decisions
+Five limits are built into the free route and should be read before the first result.
+• CFD proxies are not futures. Dukascopy quotes carry no exchange volume, a broker's spread and their own trading hours. Use them to find candidates, then confirm on CME bars.
+• Non-US stocks and futures contracts start today. Their 1-minute history is whatever the recorder has saved.
+• Yahoo is unofficial. It can change or block without notice, so the recorder needs a health alert and, where one exists, a second source.
+• Survivorship. Free equity sources omit delisted names; results on small caps will look better than they were.
+• A map shows dependence, not profit. The system's first job is to reject ideas cheaply. Nothing here predicts a return, and none of it is investment advice.
+Decisions that are yours:
+[ ] New repository or not. Your standing rule is no new repos until Hindsight has a panel benchmark, a leakage-gate Action and one external user. Option: make Phase 1's cross-asset panel that benchmark and build the leakage gate in Hindsight first, so this project advances the rule instead of breaking it.
+[ ] Recorder host: an always-on PC or a small server.
+[ ] Whether to spend the Databento credit on CME history in Phase 3 or wait for a CFD-proxy result worth confirming.
+[ ] Dashboard: reuse the MarketImmune React shell or start clean.
+[ ] Version 1 universe. Proposal: about 150 instruments (60 US large caps, 30 sector and country ETFs, 15 futures roots, 15 FX and metal pairs, 10 index CFDs, 20 crypto pairs).
+Sources
+Provider pages opened on 2026-10-07; endpoint behaviour is from direct calls made the same day.
+• Alpaca: About Market Data API
+• Massive (formerly Polygon) pricing
+• Binance public data repository
+• Dukascopy available date ranges, listed by Tickstory
+• HistData free forex data
+• Databento pricing and usage-based pricing and credits
+• IBKR: unavailable historical data and market data pricing
+• QuantConnect tier features
+• NautilusTrader integrations and PyPI release page
+Not verified from a provider page: Yahoo's 30-day limit and coverage (measured by calling it), the disk estimate, and effort estimates in the roadmap.

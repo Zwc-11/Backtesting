@@ -1,0 +1,21 @@
+[Unit]
+Description=xasset market observation monitor
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=xasset
+WorkingDirectory=/srv/xasset
+EnvironmentFile=/etc/xasset/runtime.env
+ExecStart=/srv/xasset/.venv/bin/xasset-app --data-dir /srv/xasset/data monitor --config /srv/xasset/config/monitor.yaml
+Restart=on-failure
+RestartSec=15
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/srv/xasset/data
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

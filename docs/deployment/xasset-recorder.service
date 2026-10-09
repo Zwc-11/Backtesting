@@ -1,0 +1,16 @@
+[Unit]
+Description=xasset bounded nightly recorder and quality report
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=xasset
+WorkingDirectory=/srv/xasset
+EnvironmentFile=/etc/xasset/runtime.env
+Environment=PATH=/srv/xasset/.venv/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/bin/bash /srv/xasset/scripts/nightly.sh
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/srv/xasset/data
+UMask=0077

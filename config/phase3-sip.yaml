@@ -1,0 +1,3012 @@
+id: phase3-sip-experiments-v2
+title: Phase 3 consolidated historical SIP campaign
+cases:
+- id: 01-oil-equities
+  title: Oil to energy stocks and airlines
+  original_scope: WTI/Brent to energy and airlines at 5m, 1h and 1d.
+  implemented_scope: 5-minute oil signals; long energy after oil rises or long airlines
+    after oil falls; 15/60-minute holds.
+  deferred_scope:
+  - Separate 1h and 1d signal horizons
+  - Short positions and simultaneous baskets
+  - CME confirmation of any qualifying proxy result
+  experiment:
+    family: phase3-oil-equities-sip-v2
+    hypothesis: Positive oil returns may lead energy stocks while negative oil returns
+      may lead airline stocks higher.
+    strategy: cross_asset_leadlag
+    strategy_revision: current
+    purpose: research
+    initial_capital: 100000
+    allocation_fraction: 0.1
+    symbols:
+    - BRENT_CFD
+    - CVX_SIP
+    - DAL_SIP
+    - HAL_SIP
+    - JETS_SIP
+    - OXY_SIP
+    - UAL_SIP
+    - WTI_CFD
+    - XLE_SIP
+    - XOM_SIP
+    start: '2026-07-01T00:00:00Z'
+    end: '2026-10-01T00:00:00Z'
+    frequency: 5m
+    parameter_grid: {}
+    parameter_sets:
+    - driver: WTI_CFD
+      follower: XLE_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 15
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: WTI_CFD
+      follower: XLE_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: WTI_CFD
+      follower: XLE_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 15
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: WTI_CFD
+      follower: XLE_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: WTI_CFD
+      follower: XOM_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 15
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: WTI_CFD
+      follower: XOM_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: WTI_CFD
+      follower: XOM_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 15
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: WTI_CFD
+      follower: XOM_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: WTI_CFD
+      follower: CVX_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 15
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: WTI_CFD
+      follower: CVX_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: WTI_CFD
+      follower: CVX_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 15
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: WTI_CFD
+      follower: CVX_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: WTI_CFD
+      follower: OXY_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 15
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: WTI_CFD
+      follower: OXY_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: WTI_CFD
+      follower: OXY_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 15
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: WTI_CFD
+      follower: OXY_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: WTI_CFD
+      follower: HAL_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 15
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: WTI_CFD
+      follower: HAL_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: WTI_CFD
+      follower: HAL_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 15
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: WTI_CFD
+      follower: HAL_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: BRENT_CFD
+      follower: XLE_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 15
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: BRENT_CFD
+      follower: XLE_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: BRENT_CFD
+      follower: XLE_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 15
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: BRENT_CFD
+      follower: XLE_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: BRENT_CFD
+      follower: XOM_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 15
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: BRENT_CFD
+      follower: XOM_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: BRENT_CFD
+      follower: XOM_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 15
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: BRENT_CFD
+      follower: XOM_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: BRENT_CFD
+      follower: CVX_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 15
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: BRENT_CFD
+      follower: CVX_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: BRENT_CFD
+      follower: CVX_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 15
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: BRENT_CFD
+      follower: CVX_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: BRENT_CFD
+      follower: OXY_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 15
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: BRENT_CFD
+      follower: OXY_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: BRENT_CFD
+      follower: OXY_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 15
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: BRENT_CFD
+      follower: OXY_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: BRENT_CFD
+      follower: HAL_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 15
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: BRENT_CFD
+      follower: HAL_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: BRENT_CFD
+      follower: HAL_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 15
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: BRENT_CFD
+      follower: HAL_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: WTI_CFD
+      follower: JETS_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 15
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: -1
+    - driver: WTI_CFD
+      follower: JETS_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: -1
+    - driver: WTI_CFD
+      follower: JETS_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 15
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: -1
+    - driver: WTI_CFD
+      follower: JETS_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: -1
+    - driver: WTI_CFD
+      follower: DAL_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 15
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: -1
+    - driver: WTI_CFD
+      follower: DAL_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: -1
+    - driver: WTI_CFD
+      follower: DAL_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 15
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: -1
+    - driver: WTI_CFD
+      follower: DAL_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: -1
+    - driver: WTI_CFD
+      follower: UAL_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 15
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: -1
+    - driver: WTI_CFD
+      follower: UAL_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: -1
+    - driver: WTI_CFD
+      follower: UAL_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 15
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: -1
+    - driver: WTI_CFD
+      follower: UAL_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: -1
+    - driver: BRENT_CFD
+      follower: JETS_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 15
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: -1
+    - driver: BRENT_CFD
+      follower: JETS_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: -1
+    - driver: BRENT_CFD
+      follower: JETS_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 15
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: -1
+    - driver: BRENT_CFD
+      follower: JETS_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: -1
+    - driver: BRENT_CFD
+      follower: DAL_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 15
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: -1
+    - driver: BRENT_CFD
+      follower: DAL_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: -1
+    - driver: BRENT_CFD
+      follower: DAL_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 15
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: -1
+    - driver: BRENT_CFD
+      follower: DAL_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: -1
+    - driver: BRENT_CFD
+      follower: UAL_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 15
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: -1
+    - driver: BRENT_CFD
+      follower: UAL_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: -1
+    - driver: BRENT_CFD
+      follower: UAL_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 15
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: -1
+    - driver: BRENT_CFD
+      follower: UAL_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: -1
+    max_holding_minutes: 60
+    embargo_minutes: 390
+    training_days: 14
+    test_days: 7
+    minimum_coverage: 0.95
+    required_sources:
+      BRENT_CFD: dukascopy
+      CVX_SIP: alpaca
+      DAL_SIP: alpaca
+      HAL_SIP: alpaca
+      JETS_SIP: alpaca
+      OXY_SIP: alpaca
+      UAL_SIP: alpaca
+      WTI_CFD: dukascopy
+      XLE_SIP: alpaca
+      XOM_SIP: alpaca
+    prerequisites:
+    - Verify new oil CFD symbol mappings, tick scales and trading sessions against
+      provider documentation
+    events: []
+- id: 02-overnight-sectors
+  title: Overnight indices to US sectors
+  original_scope: Overnight S&P/Nasdaq move to sector ETFs, open to 10:30 and open
+    to close.
+  implemented_scope: Previous US close to next open driver return; training selects
+    one long sector follower; 60-minute or session-close exit.
+  deferred_scope:
+  - Cross-sectional sector ranking and hedged relative-performance model
+  - CME confirmation of any qualifying proxy result
+  experiment:
+    family: phase3-overnight-sectors-sip-v2
+    hypothesis: An overnight index move may predict the subsequent regular-session
+      return of a US sector ETF.
+    strategy: session_open
+    strategy_revision: current
+    purpose: research
+    initial_capital: 100000
+    allocation_fraction: 0.1
+    symbols:
+    - NASDAQ_CFD
+    - SP500_CFD
+    - XLB_SIP
+    - XLC_SIP
+    - XLE_SIP
+    - XLF_SIP
+    - XLI_SIP
+    - XLK_SIP
+    - XLP_SIP
+    - XLRE_SIP
+    - XLU_SIP
+    - XLV_SIP
+    - XLY_SIP
+    start: '2026-07-01T00:00:00Z'
+    end: '2026-10-01T00:00:00Z'
+    frequency: 1m
+    parameter_grid: {}
+    parameter_sets:
+    - driver: SP500_CFD
+      follower: XLE_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: SP500_CFD
+      follower: XLE_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: SP500_CFD
+      follower: XLE_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: SP500_CFD
+      follower: XLE_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: SP500_CFD
+      follower: XLF_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: SP500_CFD
+      follower: XLF_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: SP500_CFD
+      follower: XLF_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: SP500_CFD
+      follower: XLF_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: SP500_CFD
+      follower: XLU_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: SP500_CFD
+      follower: XLU_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: SP500_CFD
+      follower: XLU_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: SP500_CFD
+      follower: XLU_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: SP500_CFD
+      follower: XLK_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: SP500_CFD
+      follower: XLK_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: SP500_CFD
+      follower: XLK_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: SP500_CFD
+      follower: XLK_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: SP500_CFD
+      follower: XLI_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: SP500_CFD
+      follower: XLI_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: SP500_CFD
+      follower: XLI_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: SP500_CFD
+      follower: XLI_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: SP500_CFD
+      follower: XLY_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: SP500_CFD
+      follower: XLY_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: SP500_CFD
+      follower: XLY_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: SP500_CFD
+      follower: XLY_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: SP500_CFD
+      follower: XLP_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: SP500_CFD
+      follower: XLP_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: SP500_CFD
+      follower: XLP_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: SP500_CFD
+      follower: XLP_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: SP500_CFD
+      follower: XLV_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: SP500_CFD
+      follower: XLV_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: SP500_CFD
+      follower: XLV_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: SP500_CFD
+      follower: XLV_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: SP500_CFD
+      follower: XLB_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: SP500_CFD
+      follower: XLB_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: SP500_CFD
+      follower: XLB_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: SP500_CFD
+      follower: XLB_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: SP500_CFD
+      follower: XLRE_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: SP500_CFD
+      follower: XLRE_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: SP500_CFD
+      follower: XLRE_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: SP500_CFD
+      follower: XLRE_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: SP500_CFD
+      follower: XLC_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: SP500_CFD
+      follower: XLC_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: SP500_CFD
+      follower: XLC_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: SP500_CFD
+      follower: XLC_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: NASDAQ_CFD
+      follower: XLE_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: NASDAQ_CFD
+      follower: XLE_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: NASDAQ_CFD
+      follower: XLE_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: NASDAQ_CFD
+      follower: XLE_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: NASDAQ_CFD
+      follower: XLF_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: NASDAQ_CFD
+      follower: XLF_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: NASDAQ_CFD
+      follower: XLF_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: NASDAQ_CFD
+      follower: XLF_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: NASDAQ_CFD
+      follower: XLU_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: NASDAQ_CFD
+      follower: XLU_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: NASDAQ_CFD
+      follower: XLU_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: NASDAQ_CFD
+      follower: XLU_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: NASDAQ_CFD
+      follower: XLK_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: NASDAQ_CFD
+      follower: XLK_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: NASDAQ_CFD
+      follower: XLK_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: NASDAQ_CFD
+      follower: XLK_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: NASDAQ_CFD
+      follower: XLI_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: NASDAQ_CFD
+      follower: XLI_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: NASDAQ_CFD
+      follower: XLI_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: NASDAQ_CFD
+      follower: XLI_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: NASDAQ_CFD
+      follower: XLY_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: NASDAQ_CFD
+      follower: XLY_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: NASDAQ_CFD
+      follower: XLY_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: NASDAQ_CFD
+      follower: XLY_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: NASDAQ_CFD
+      follower: XLP_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: NASDAQ_CFD
+      follower: XLP_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: NASDAQ_CFD
+      follower: XLP_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: NASDAQ_CFD
+      follower: XLP_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: NASDAQ_CFD
+      follower: XLV_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: NASDAQ_CFD
+      follower: XLV_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: NASDAQ_CFD
+      follower: XLV_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: NASDAQ_CFD
+      follower: XLV_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: NASDAQ_CFD
+      follower: XLB_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: NASDAQ_CFD
+      follower: XLB_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: NASDAQ_CFD
+      follower: XLB_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: NASDAQ_CFD
+      follower: XLB_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: NASDAQ_CFD
+      follower: XLRE_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: NASDAQ_CFD
+      follower: XLRE_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: NASDAQ_CFD
+      follower: XLRE_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: NASDAQ_CFD
+      follower: XLRE_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: NASDAQ_CFD
+      follower: XLC_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: NASDAQ_CFD
+      follower: XLC_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: NASDAQ_CFD
+      follower: XLC_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: NASDAQ_CFD
+      follower: XLC_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    max_holding_minutes: 390
+    embargo_minutes: 390
+    training_days: 14
+    test_days: 7
+    minimum_coverage: 0.95
+    required_sources:
+      NASDAQ_CFD: dukascopy
+      SP500_CFD: dukascopy
+      XLB_SIP: alpaca
+      XLC_SIP: alpaca
+      XLE_SIP: alpaca
+      XLF_SIP: alpaca
+      XLI_SIP: alpaca
+      XLK_SIP: alpaca
+      XLP_SIP: alpaca
+      XLRE_SIP: alpaca
+      XLU_SIP: alpaca
+      XLV_SIP: alpaca
+      XLY_SIP: alpaca
+    prerequisites:
+    - Verify index CFD mappings, scales and overnight trading calendars; incomplete
+      windows cannot be imputed
+    events: []
+- id: 03-bitcoin-equities
+  title: Bitcoin overnight to crypto equities
+  original_scope: Bitcoin weekend/overnight return to crypto equities at the next
+    open, first hour and day.
+  implemented_scope: Complete bitcoin window from previous US close to next open;
+    buy at the open and exit after 60 minutes or at the session close.
+  deferred_scope:
+  - Short positions and separate weekend-only comparison
+  experiment:
+    family: phase3-bitcoin-equities-sip-v2
+    hypothesis: Overnight and weekend bitcoin returns may lead COIN, MSTR, MARA or
+      RIOT after the US open.
+    strategy: session_open
+    strategy_revision: current
+    purpose: research
+    initial_capital: 100000
+    allocation_fraction: 0.1
+    symbols:
+    - BTC_USDT
+    - COIN_SIP
+    - MARA_SIP
+    - MSTR_SIP
+    - RIOT_SIP
+    start: '2026-07-01T00:00:00Z'
+    end: '2026-10-01T00:00:00Z'
+    frequency: 1m
+    parameter_grid: {}
+    parameter_sets:
+    - driver: BTC_USDT
+      follower: COIN_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: BTC_USDT
+      follower: COIN_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: BTC_USDT
+      follower: COIN_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: BTC_USDT
+      follower: COIN_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: BTC_USDT
+      follower: MSTR_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: BTC_USDT
+      follower: MSTR_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: BTC_USDT
+      follower: MSTR_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: BTC_USDT
+      follower: MSTR_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: BTC_USDT
+      follower: MARA_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: BTC_USDT
+      follower: MARA_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: BTC_USDT
+      follower: MARA_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: BTC_USDT
+      follower: MARA_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: BTC_USDT
+      follower: RIOT_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: BTC_USDT
+      follower: RIOT_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: BTC_USDT
+      follower: RIOT_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: BTC_USDT
+      follower: RIOT_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    max_holding_minutes: 390
+    embargo_minutes: 390
+    training_days: 14
+    test_days: 7
+    minimum_coverage: 0.95
+    required_sources:
+      BTC_USDT: binance
+      COIN_SIP: alpaca
+      MARA_SIP: alpaca
+      MSTR_SIP: alpaca
+      RIOT_SIP: alpaca
+    prerequisites: []
+    events: []
+- id: 04-gold-miners
+  title: Gold to mining equities
+  original_scope: XAUUSD to GDX, NEM and the plan's GOLD ticker at 5m, 1h and 1d.
+  implemented_scope: Complete 5-minute gold quote signals with 15/60-minute long GDX/NEM
+    holds.
+  deferred_scope:
+  - Resolve Barrick/GOLD point-in-time ticker identity before inclusion
+  - Separate 1h and 1d signals
+  - CME confirmation of any qualifying proxy result
+  experiment:
+    family: phase3-gold-miners-sip-v2
+    hypothesis: Positive gold returns may lead GDX and NEM over the following fifteen
+      to sixty minutes.
+    strategy: cross_asset_leadlag
+    strategy_revision: current
+    purpose: research
+    initial_capital: 100000
+    allocation_fraction: 0.1
+    symbols:
+    - GDX_SIP
+    - NEM_SIP
+    - XAUUSD
+    start: '2026-07-01T00:00:00Z'
+    end: '2026-10-01T00:00:00Z'
+    frequency: 5m
+    parameter_grid: {}
+    parameter_sets:
+    - driver: XAUUSD
+      follower: GDX_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 15
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: XAUUSD
+      follower: GDX_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: XAUUSD
+      follower: GDX_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 15
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: XAUUSD
+      follower: GDX_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: XAUUSD
+      follower: NEM_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 15
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: XAUUSD
+      follower: NEM_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: XAUUSD
+      follower: NEM_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 15
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: XAUUSD
+      follower: NEM_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    max_holding_minutes: 60
+    embargo_minutes: 390
+    training_days: 14
+    test_days: 7
+    minimum_coverage: 0.95
+    required_sources:
+      GDX_SIP: alpaca
+      NEM_SIP: alpaca
+      XAUUSD: dukascopy
+    prerequisites: []
+    events: []
+- id: 05-rates-dollar
+  title: Rates and dollar to sensitive sectors
+  original_scope: TLT/IEF and EURUSD to KRE/XLF/XLU/XLK at 1h and 1d.
+  implemented_scope: Hourly driver returns, both registered driver directions, long
+    sector followers held up to 60 minutes.
+  deferred_scope:
+  - Separate 1d horizon
+  - Signed joint rate/dollar regression and hedged portfolios
+  experiment:
+    family: phase3-rates-dollar-sip-v2
+    hypothesis: Bond ETF or EURUSD returns may lead bank, financial, utility or technology
+      ETF returns.
+    strategy: cross_asset_leadlag
+    strategy_revision: current
+    purpose: research
+    initial_capital: 100000
+    allocation_fraction: 0.1
+    symbols:
+    - EURUSD
+    - IEF_SIP
+    - KRE_SIP
+    - TLT_SIP
+    - XLF_SIP
+    - XLK_SIP
+    - XLU_SIP
+    start: '2026-07-01T00:00:00Z'
+    end: '2026-10-01T00:00:00Z'
+    frequency: 1h
+    parameter_grid: {}
+    parameter_sets:
+    - driver: TLT_SIP
+      follower: KRE_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: TLT_SIP
+      follower: KRE_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: TLT_SIP
+      follower: XLF_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: TLT_SIP
+      follower: XLF_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: TLT_SIP
+      follower: XLU_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: TLT_SIP
+      follower: XLU_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: TLT_SIP
+      follower: XLK_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: TLT_SIP
+      follower: XLK_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: IEF_SIP
+      follower: KRE_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: IEF_SIP
+      follower: KRE_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: IEF_SIP
+      follower: XLF_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: IEF_SIP
+      follower: XLF_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: IEF_SIP
+      follower: XLU_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: IEF_SIP
+      follower: XLU_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: IEF_SIP
+      follower: XLK_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: IEF_SIP
+      follower: XLK_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: EURUSD
+      follower: KRE_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: EURUSD
+      follower: KRE_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: EURUSD
+      follower: XLF_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: EURUSD
+      follower: XLF_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: EURUSD
+      follower: XLU_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: EURUSD
+      follower: XLU_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: EURUSD
+      follower: XLK_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: EURUSD
+      follower: XLK_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+    - driver: TLT_SIP
+      follower: KRE_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: -1
+    - driver: TLT_SIP
+      follower: KRE_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: -1
+    - driver: TLT_SIP
+      follower: XLF_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: -1
+    - driver: TLT_SIP
+      follower: XLF_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: -1
+    - driver: TLT_SIP
+      follower: XLU_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: -1
+    - driver: TLT_SIP
+      follower: XLU_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: -1
+    - driver: TLT_SIP
+      follower: XLK_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: -1
+    - driver: TLT_SIP
+      follower: XLK_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: -1
+    - driver: IEF_SIP
+      follower: KRE_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: -1
+    - driver: IEF_SIP
+      follower: KRE_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: -1
+    - driver: IEF_SIP
+      follower: XLF_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: -1
+    - driver: IEF_SIP
+      follower: XLF_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: -1
+    - driver: IEF_SIP
+      follower: XLU_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: -1
+    - driver: IEF_SIP
+      follower: XLU_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: -1
+    - driver: IEF_SIP
+      follower: XLK_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: -1
+    - driver: IEF_SIP
+      follower: XLK_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: -1
+    - driver: EURUSD
+      follower: KRE_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: -1
+    - driver: EURUSD
+      follower: KRE_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: -1
+    - driver: EURUSD
+      follower: XLF_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: -1
+    - driver: EURUSD
+      follower: XLF_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: -1
+    - driver: EURUSD
+      follower: XLU_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: -1
+    - driver: EURUSD
+      follower: XLU_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: -1
+    - driver: EURUSD
+      follower: XLK_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: -1
+    - driver: EURUSD
+      follower: XLK_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 60
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: -1
+    max_holding_minutes: 60
+    embargo_minutes: 390
+    training_days: 14
+    test_days: 7
+    minimum_coverage: 0.95
+    required_sources:
+      EURUSD: dukascopy
+      IEF_SIP: alpaca
+      KRE_SIP: alpaca
+      TLT_SIP: alpaca
+      XLF_SIP: alpaca
+      XLK_SIP: alpaca
+      XLU_SIP: alpaca
+    prerequisites: []
+    events: []
+- id: 06-eia-inventories
+  title: EIA inventory release response
+  original_scope: "WTI at EIA releases to energy equities over the next 5\u201360\
+    \ minutes."
+  implemented_scope: One signal after a 5/15-minute observed oil response; 15/30-minute
+    follower hold within the first post-release hour.
+  deferred_scope:
+  - Inventory surprise values and revision-aware expectations model
+  - CME confirmation of any qualifying proxy result
+  experiment:
+    family: phase3-eia-inventories-sip-v2
+    hypothesis: The first five to fifteen minutes of oil response after an EIA release
+      may precede energy-equity moves.
+    strategy: event_response
+    strategy_revision: current
+    purpose: research
+    initial_capital: 100000
+    allocation_fraction: 0.1
+    symbols:
+    - CVX_SIP
+    - HAL_SIP
+    - OXY_SIP
+    - WTI_CFD
+    - XLE_SIP
+    - XOM_SIP
+    start: '2026-07-01T00:00:00Z'
+    end: '2026-10-01T00:00:00Z'
+    frequency: 1m
+    parameter_grid: {}
+    parameter_sets:
+    - driver: WTI_CFD
+      follower: XLE_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 15
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      event_kind: eia_petroleum
+      observation_minutes: 5
+    - driver: WTI_CFD
+      follower: XLE_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 15
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      event_kind: eia_petroleum
+      observation_minutes: 15
+    - driver: WTI_CFD
+      follower: XLE_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 30
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      event_kind: eia_petroleum
+      observation_minutes: 5
+    - driver: WTI_CFD
+      follower: XLE_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 30
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      event_kind: eia_petroleum
+      observation_minutes: 15
+    - driver: WTI_CFD
+      follower: XLE_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 15
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      event_kind: eia_petroleum
+      observation_minutes: 5
+    - driver: WTI_CFD
+      follower: XLE_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 15
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      event_kind: eia_petroleum
+      observation_minutes: 15
+    - driver: WTI_CFD
+      follower: XLE_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 30
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      event_kind: eia_petroleum
+      observation_minutes: 5
+    - driver: WTI_CFD
+      follower: XLE_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 30
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      event_kind: eia_petroleum
+      observation_minutes: 15
+    - driver: WTI_CFD
+      follower: XOM_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 15
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      event_kind: eia_petroleum
+      observation_minutes: 5
+    - driver: WTI_CFD
+      follower: XOM_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 15
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      event_kind: eia_petroleum
+      observation_minutes: 15
+    - driver: WTI_CFD
+      follower: XOM_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 30
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      event_kind: eia_petroleum
+      observation_minutes: 5
+    - driver: WTI_CFD
+      follower: XOM_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 30
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      event_kind: eia_petroleum
+      observation_minutes: 15
+    - driver: WTI_CFD
+      follower: XOM_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 15
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      event_kind: eia_petroleum
+      observation_minutes: 5
+    - driver: WTI_CFD
+      follower: XOM_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 15
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      event_kind: eia_petroleum
+      observation_minutes: 15
+    - driver: WTI_CFD
+      follower: XOM_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 30
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      event_kind: eia_petroleum
+      observation_minutes: 5
+    - driver: WTI_CFD
+      follower: XOM_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 30
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      event_kind: eia_petroleum
+      observation_minutes: 15
+    - driver: WTI_CFD
+      follower: CVX_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 15
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      event_kind: eia_petroleum
+      observation_minutes: 5
+    - driver: WTI_CFD
+      follower: CVX_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 15
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      event_kind: eia_petroleum
+      observation_minutes: 15
+    - driver: WTI_CFD
+      follower: CVX_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 30
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      event_kind: eia_petroleum
+      observation_minutes: 5
+    - driver: WTI_CFD
+      follower: CVX_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 30
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      event_kind: eia_petroleum
+      observation_minutes: 15
+    - driver: WTI_CFD
+      follower: CVX_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 15
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      event_kind: eia_petroleum
+      observation_minutes: 5
+    - driver: WTI_CFD
+      follower: CVX_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 15
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      event_kind: eia_petroleum
+      observation_minutes: 15
+    - driver: WTI_CFD
+      follower: CVX_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 30
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      event_kind: eia_petroleum
+      observation_minutes: 5
+    - driver: WTI_CFD
+      follower: CVX_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 30
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      event_kind: eia_petroleum
+      observation_minutes: 15
+    - driver: WTI_CFD
+      follower: OXY_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 15
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      event_kind: eia_petroleum
+      observation_minutes: 5
+    - driver: WTI_CFD
+      follower: OXY_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 15
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      event_kind: eia_petroleum
+      observation_minutes: 15
+    - driver: WTI_CFD
+      follower: OXY_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 30
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      event_kind: eia_petroleum
+      observation_minutes: 5
+    - driver: WTI_CFD
+      follower: OXY_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 30
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      event_kind: eia_petroleum
+      observation_minutes: 15
+    - driver: WTI_CFD
+      follower: OXY_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 15
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      event_kind: eia_petroleum
+      observation_minutes: 5
+    - driver: WTI_CFD
+      follower: OXY_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 15
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      event_kind: eia_petroleum
+      observation_minutes: 15
+    - driver: WTI_CFD
+      follower: OXY_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 30
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      event_kind: eia_petroleum
+      observation_minutes: 5
+    - driver: WTI_CFD
+      follower: OXY_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 30
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      event_kind: eia_petroleum
+      observation_minutes: 15
+    - driver: WTI_CFD
+      follower: HAL_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 15
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      event_kind: eia_petroleum
+      observation_minutes: 5
+    - driver: WTI_CFD
+      follower: HAL_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 15
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      event_kind: eia_petroleum
+      observation_minutes: 15
+    - driver: WTI_CFD
+      follower: HAL_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 30
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      event_kind: eia_petroleum
+      observation_minutes: 5
+    - driver: WTI_CFD
+      follower: HAL_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 30
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      event_kind: eia_petroleum
+      observation_minutes: 15
+    - driver: WTI_CFD
+      follower: HAL_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 15
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      event_kind: eia_petroleum
+      observation_minutes: 5
+    - driver: WTI_CFD
+      follower: HAL_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 15
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      event_kind: eia_petroleum
+      observation_minutes: 15
+    - driver: WTI_CFD
+      follower: HAL_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 30
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      event_kind: eia_petroleum
+      observation_minutes: 5
+    - driver: WTI_CFD
+      follower: HAL_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 30
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      event_kind: eia_petroleum
+      observation_minutes: 15
+    max_holding_minutes: 30
+    embargo_minutes: 390
+    training_days: 14
+    test_days: 7
+    minimum_coverage: 0.95
+    required_sources:
+      CVX_SIP: alpaca
+      HAL_SIP: alpaca
+      OXY_SIP: alpaca
+      WTI_CFD: dukascopy
+      XLE_SIP: alpaca
+      XOM_SIP: alpaca
+    prerequisites:
+    - Verify new oil CFD symbol mappings, tick scales and trading sessions against
+      provider documentation
+    events: []
+- id: 07-regional-open
+  title: Asian and European sessions to US open
+  original_scope: Nikkei/DAX CFD session information to SPY, QQQ and sector ETFs,
+    US open to close.
+  implemented_scope: Latest eligible regional reference cash-session return known
+    by the US open; long follower closes at its actual session close.
+  deferred_scope:
+  - Hedged relative-performance model
+  - Full regional CFD overnight sessions
+  - CME or suitable exchange-contract confirmation
+  experiment:
+    family: phase3-regional-open-sip-v2
+    hypothesis: The latest Asian or current European cash-session return may precede
+      US ETF moves after the open.
+    strategy: session_open
+    strategy_revision: current
+    purpose: research
+    initial_capital: 100000
+    allocation_fraction: 0.1
+    symbols:
+    - DAX_CFD
+    - NIKKEI_CFD
+    - QQQ_SIP
+    - SPY_SIP
+    - XLB_SIP
+    - XLC_SIP
+    - XLE_SIP
+    - XLF_SIP
+    - XLI_SIP
+    - XLK_SIP
+    - XLP_SIP
+    - XLRE_SIP
+    - XLU_SIP
+    - XLV_SIP
+    - XLY_SIP
+    start: '2026-07-01T00:00:00Z'
+    end: '2026-10-01T00:00:00Z'
+    frequency: 1m
+    parameter_grid: {}
+    parameter_sets:
+    - driver: NIKKEI_CFD
+      follower: SPY_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      anchor: regional_session
+    - driver: NIKKEI_CFD
+      follower: SPY_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      anchor: regional_session
+    - driver: NIKKEI_CFD
+      follower: QQQ_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      anchor: regional_session
+    - driver: NIKKEI_CFD
+      follower: QQQ_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      anchor: regional_session
+    - driver: NIKKEI_CFD
+      follower: XLE_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      anchor: regional_session
+    - driver: NIKKEI_CFD
+      follower: XLE_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      anchor: regional_session
+    - driver: NIKKEI_CFD
+      follower: XLF_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      anchor: regional_session
+    - driver: NIKKEI_CFD
+      follower: XLF_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      anchor: regional_session
+    - driver: NIKKEI_CFD
+      follower: XLU_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      anchor: regional_session
+    - driver: NIKKEI_CFD
+      follower: XLU_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      anchor: regional_session
+    - driver: NIKKEI_CFD
+      follower: XLK_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      anchor: regional_session
+    - driver: NIKKEI_CFD
+      follower: XLK_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      anchor: regional_session
+    - driver: NIKKEI_CFD
+      follower: XLI_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      anchor: regional_session
+    - driver: NIKKEI_CFD
+      follower: XLI_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      anchor: regional_session
+    - driver: NIKKEI_CFD
+      follower: XLY_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      anchor: regional_session
+    - driver: NIKKEI_CFD
+      follower: XLY_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      anchor: regional_session
+    - driver: NIKKEI_CFD
+      follower: XLP_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      anchor: regional_session
+    - driver: NIKKEI_CFD
+      follower: XLP_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      anchor: regional_session
+    - driver: NIKKEI_CFD
+      follower: XLV_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      anchor: regional_session
+    - driver: NIKKEI_CFD
+      follower: XLV_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      anchor: regional_session
+    - driver: NIKKEI_CFD
+      follower: XLB_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      anchor: regional_session
+    - driver: NIKKEI_CFD
+      follower: XLB_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      anchor: regional_session
+    - driver: NIKKEI_CFD
+      follower: XLRE_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      anchor: regional_session
+    - driver: NIKKEI_CFD
+      follower: XLRE_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      anchor: regional_session
+    - driver: NIKKEI_CFD
+      follower: XLC_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      anchor: regional_session
+    - driver: NIKKEI_CFD
+      follower: XLC_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      anchor: regional_session
+    - driver: DAX_CFD
+      follower: SPY_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      anchor: regional_session
+    - driver: DAX_CFD
+      follower: SPY_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      anchor: regional_session
+    - driver: DAX_CFD
+      follower: QQQ_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      anchor: regional_session
+    - driver: DAX_CFD
+      follower: QQQ_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      anchor: regional_session
+    - driver: DAX_CFD
+      follower: XLE_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      anchor: regional_session
+    - driver: DAX_CFD
+      follower: XLE_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      anchor: regional_session
+    - driver: DAX_CFD
+      follower: XLF_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      anchor: regional_session
+    - driver: DAX_CFD
+      follower: XLF_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      anchor: regional_session
+    - driver: DAX_CFD
+      follower: XLU_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      anchor: regional_session
+    - driver: DAX_CFD
+      follower: XLU_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      anchor: regional_session
+    - driver: DAX_CFD
+      follower: XLK_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      anchor: regional_session
+    - driver: DAX_CFD
+      follower: XLK_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      anchor: regional_session
+    - driver: DAX_CFD
+      follower: XLI_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      anchor: regional_session
+    - driver: DAX_CFD
+      follower: XLI_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      anchor: regional_session
+    - driver: DAX_CFD
+      follower: XLY_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      anchor: regional_session
+    - driver: DAX_CFD
+      follower: XLY_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      anchor: regional_session
+    - driver: DAX_CFD
+      follower: XLP_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      anchor: regional_session
+    - driver: DAX_CFD
+      follower: XLP_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      anchor: regional_session
+    - driver: DAX_CFD
+      follower: XLV_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      anchor: regional_session
+    - driver: DAX_CFD
+      follower: XLV_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      anchor: regional_session
+    - driver: DAX_CFD
+      follower: XLB_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      anchor: regional_session
+    - driver: DAX_CFD
+      follower: XLB_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      anchor: regional_session
+    - driver: DAX_CFD
+      follower: XLRE_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      anchor: regional_session
+    - driver: DAX_CFD
+      follower: XLRE_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      anchor: regional_session
+    - driver: DAX_CFD
+      follower: XLC_SIP
+      lookback: 1
+      threshold: 0.002
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      anchor: regional_session
+    - driver: DAX_CFD
+      follower: XLC_SIP
+      lookback: 1
+      threshold: 0.004
+      hold_minutes: 390
+      stop_pct: 0.01
+      target_pct: 0.02
+      direction: 1
+      anchor: regional_session
+    max_holding_minutes: 390
+    embargo_minutes: 390
+    training_days: 14
+    test_days: 7
+    minimum_coverage: 0.95
+    required_sources:
+      DAX_CFD: dukascopy
+      NIKKEI_CFD: dukascopy
+      QQQ_SIP: alpaca
+      SPY_SIP: alpaca
+      XLB_SIP: alpaca
+      XLC_SIP: alpaca
+      XLE_SIP: alpaca
+      XLF_SIP: alpaca
+      XLI_SIP: alpaca
+      XLK_SIP: alpaca
+      XLP_SIP: alpaca
+      XLRE_SIP: alpaca
+      XLU_SIP: alpaca
+      XLV_SIP: alpaca
+      XLY_SIP: alpaca
+    prerequisites:
+    - Verify regional CFD mappings and tick scales; XTKS/XETR are reference cash windows,
+      not CFD venue calendars
+    events: []
