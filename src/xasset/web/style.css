@@ -206,6 +206,7 @@ footer{max-width:1400px;margin:0 auto;padding:0 var(--gutter) 32px;color:var(--i
   .figures dd{font-size:21px}
   .log li{grid-template-columns:58px 36px minmax(0,1fr)}
   .board tbody th span{display:none}
+  .chart .readout{position:static;display:block;text-align:right;margin-top:4px}
   .board tbody th{padding:0 10px}
   .run-head .switch{width:100%}
   .switch button{padding:6px 10px}
