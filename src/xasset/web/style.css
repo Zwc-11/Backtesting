@@ -159,7 +159,7 @@ table.data tr[aria-selected="true"] td:first-child{box-shadow:inset 3px 0 0 var(
 .flag{display:inline-block;font-size:12px;border:1px solid var(--amber);border-radius:3px;padding:0 6px;margin-left:6px;color:var(--ink)}
 
 /* Trade inspector ------------------------------------------------------------ */
-.inspector,.explainer{display:grid;gap:14px;background:var(--plate);border:1px solid var(--ink);border-radius:4px;padding:16px 18px 18px}
+.inspector,.explainer{scroll-margin-top:72px;display:grid;gap:14px;background:var(--plate);border:1px solid var(--ink);border-radius:4px;padding:16px 18px 18px}
 .inspector-head{display:flex;justify-content:space-between;align-items:start;gap:16px}
 .inspector-head h2{margin:0}
 .inspector-head p{font-size:13px;margin-top:2px}
