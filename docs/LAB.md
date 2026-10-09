@@ -150,6 +150,10 @@ uv run --frozen xasset lab holdout-open crypto-archive --reason "…"   # once
 uv run --frozen xasset lab run config/lab/crypto-book.yaml --phase holdout
 ```
 
+A run replays three scenarios (base, doubled costs, one bar of extra delay) in
+parallel processes, one per core up to three; `--workers 1` runs them one after
+another. On two cores the nine-month crypto book takes about an hour.
+
 Registration freezes the book file, the universe file and the replay code; any
 change to either file requires a new book ID. The final 20% of the registered
 interval is the holdout. Every run, including failures, is stored in
