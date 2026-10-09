@@ -12,7 +12,11 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+import polars as pl
 from fastapi import FastAPI, HTTPException
+
+from xasset.lab.charts import chart
+from xasset.lab.universe import Universe, load_book
 
 NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$")
 SCENARIOS = ("base", "costs_2x", "delay_1_bar")
@@ -117,8 +121,10 @@ def scenario_detail(run: dict[str, Any], name: str) -> dict[str, Any]:
         "strategies": scenario.get("strategies"),
         "multiplicity": scenario.get("multiplicity"),
         "portfolio": portfolio,
-        "trade_count": len(trades),
+        "trade_count": scenario.get("trade_count", len(trades)),
         "requirements": run.get("strategies"),
+        "diagnostics": run.get("diagnostics") if name == "base" else None,
+        "has_trade_file": bool(run.get("trades_file")),
     }
 
 
@@ -166,19 +172,121 @@ def mount(api: FastAPI, root: Path) -> None:
         detail["portfolio"]["nav_daily"] = downsample(nav, 400)
         return detail
 
+    def run_record(run_id: str) -> dict[str, Any]:
+        data = read(lab / "runs" / f"{safe(run_id)}.json")
+        if not isinstance(data, dict):
+            raise HTTPException(404, "Run not found")
+        return data
+
+    def trade_frame(run: dict[str, Any]) -> pl.DataFrame | None:
+        name = run.get("trades_file")
+        if not name:
+            return None
+        path = lab / "runs" / str(name)
+        if not path.exists():
+            raise HTTPException(404, "The run's trade file is missing")
+        return pl.read_parquet(path)
+
+    def run_universe(run: dict[str, Any]) -> Universe:
+        record = read(lab / "registry" / f"{safe(str(run.get('book')))}.json")
+        if not isinstance(record, dict):
+            raise HTTPException(404, "The run's book is not registered here")
+        book_path = Path(record["registration"]["book_path"])
+        if not book_path.is_absolute():
+            book_path = root.parent / book_path if not book_path.exists() else book_path
+        try:
+            return load_book(book_path)[1]
+        except (OSError, ValueError) as exc:
+            raise HTTPException(404, f"Book file unavailable: {book_path}") from exc
+
     @api.get("/api/lab/runs/{run_id}/trades")
     def run_trades(
-        run_id: str, scenario: str = "base", strategy: str | None = None, limit: int = 300
+        run_id: str,
+        scenario: str = "base",
+        strategy: str | None = None,
+        limit: int = 300,
+        offset: int = 0,
     ) -> dict[str, Any]:
-        data = read(lab / "runs" / f"{safe(run_id)}.json")
-        if not isinstance(data, dict) or scenario not in SCENARIOS:
-            raise HTTPException(404, "Run not found")
+        data = run_record(run_id)
+        if scenario not in SCENARIOS:
+            raise HTTPException(404, "Scenario not found")
+        limit = max(1, min(limit, 2000))
+        offset = max(0, offset)
+        frame = trade_frame(data)
+        if frame is not None:
+            chosen = frame.filter(pl.col("scenario") == scenario)
+            if strategy:
+                chosen = chosen.filter(pl.col("strategy") == strategy)
+            total = chosen.height
+            page = (
+                chosen.drop("timeline")
+                .sort("entry_time", descending=True)
+                .slice(offset, limit)
+                .to_dicts()
+            )
+            return {"total": total, "trades": page}
         trades = ((data.get("scenarios") or {}).get(scenario) or {}).get("trades") or []
         if strategy:
             trades = [t for t in trades if t.get("strategy") == strategy]
-        trades = sorted(trades, key=lambda t: str(t.get("entry_time") or ""))
-        limit = max(1, min(limit, 2000))
-        return {"total": len(trades), "trades": trades[-limit:][::-1]}
+        trades = sorted(trades, key=lambda t: str(t.get("entry_time") or ""), reverse=True)
+        return {"total": len(trades), "trades": trades[offset : offset + limit]}
+
+    @api.get("/api/lab/runs/{run_id}/trades/{trade_id}/chart")
+    def trade_chart(run_id: str, trade_id: str) -> dict[str, Any]:
+        data = run_record(run_id)
+        frame = trade_frame(data)
+        if frame is None:
+            raise HTTPException(404, "This run predates trade charts; run the book again")
+        rows = frame.filter(
+            (pl.col("scenario") == "base") & (pl.col("id") == safe(trade_id))
+        ).to_dicts()
+        if not rows:
+            raise HTTPException(404, "Trade not found")
+        trade = rows[0]
+        timeline = json.loads(trade.pop("timeline") or "[]")
+        return chart(
+            lab.parent, run_universe(data), trade["strategy"], trade["symbol"], timeline, trade
+        )
+
+    def examples_for(run_id: str) -> dict[str, list[dict[str, Any]]]:
+        data = read(lab / "runs" / safe(run_id) / "examples.json")
+        return data if isinstance(data, dict) else {}
+
+    @api.get("/api/lab/runs/{run_id}/examples")
+    def run_examples(run_id: str, strategy: str | None = None) -> dict[str, Any]:
+        output = []
+        for sid, items in examples_for(run_id).items():
+            if strategy and sid != strategy:
+                continue
+            for index, item in enumerate(items):
+                timeline = item.get("timeline") or []
+                output.append(
+                    {
+                        "strategy": sid,
+                        "index": index,
+                        "outcome": item.get("outcome"),
+                        "reason": item.get("reason"),
+                        "symbol": timeline[0]["symbol"] if timeline else None,
+                        "armed_at": timeline[0]["at"] if timeline else None,
+                        "events": len(timeline),
+                    }
+                )
+        return {"examples": output}
+
+    @api.get("/api/lab/runs/{run_id}/examples/{strategy}/{index}/chart")
+    def example_chart(run_id: str, strategy: str, index: int) -> dict[str, Any]:
+        items = examples_for(run_id).get(safe(strategy)) or []
+        if not 0 <= index < len(items):
+            raise HTTPException(404, "Example not found")
+        timeline = items[index].get("timeline") or []
+        if not timeline:
+            raise HTTPException(404, "Example has no timeline")
+        payload = chart(
+            lab.parent, run_universe(run_record(run_id)), strategy, timeline[0]["symbol"], timeline
+        )
+        payload["outcome"] = items[index].get("outcome")
+        payload["reason"] = items[index].get("reason")
+        return payload
 
     def desks() -> list[dict[str, Any]]:
         output = []

@@ -17,24 +17,82 @@ results; every strategy's status; registered runs; relationships; data health.
 
 | Strategy | Replay (archives) | Paper desk | Why |
 |---|---|---|---|
-| h01 Strength during market weakness | crypto, US | quote and trade-bar books | needs benchmark, 20+ peers, residual model |
-| h02 Buying bursts with retained gains | crypto | both books | needs aggressor-labelled flow (US SIP bars have none) |
-| h03 Improving pullbacks after broad breakout | crypto | both books | flow and breadth |
+| h01 Strength during market weakness | crypto perpetuals, crypto spot, US large caps | quote and trade-bar books | needs benchmark, 20+ peers, residual model |
+| h02 Buying bursts with retained gains | crypto perpetuals, spot | both books | needs aggressor-labelled flow (US bars have none) |
+| h03 Improving pullbacks after broad breakout | crypto perpetuals, spot | both books | flow and breadth |
 | h04 Failed recovery into a high-volume area (short) | crypto perpetuals | both books (Hyperliquid perpetuals) | needs short access; equity borrow data is unavailable |
 | h05 Residual breadth before index response | blocked | blocked | needs a complete point-in-time constituent set |
-| h06 Resistance approached with less buying | crypto | both books | flow |
-| h07 Rising trading centre inside narrowing range | crypto | both books | trade VWAP (US SIP bars lack it) |
-| h08 Confirmed catch-up after common shock | crypto, US | both books | 60 sessions for the lead-lag stability screen |
+| h06 Resistance approached with less buying | crypto perpetuals, spot | both books | flow |
+| h07 Rising trading centre inside narrowing range | crypto perpetuals, spot, US large caps | both books | trade VWAP (Alpaca bars carry it) |
+| h08 Confirmed catch-up after common shock | crypto perpetuals, spot, US large caps | both books | 60 sessions for the lead-lag stability screen |
 | h09 Selling bursts with shrinking damage | as h09t only | quote book | the primary version compares quoted spreads |
-| h09t (trade-bar variant of 9, no spread rule) | crypto | trade-bar book | separately registered variant |
+| h09t (trade-bar variant of 9, no spread rule) | crypto perpetuals, spot | trade-bar book | separately registered variant |
 | h10 Thin-session break survives the handoff | crypto (NYSE-open handoff) | both books | equities need pre-market bars |
+| h01m-h10m mirror variants | crypto perpetuals | — | the same rule on 1/P, opposite side (see below) |
 | n01, n03, n08 (experimental notebook) | daily Binance study incl. delisted coins | — | model strategies; see [NOTEBOOK.md](NOTEBOOK.md) |
 | n04 (experimental notebook) | minute-data study, 28 coins | — | censored recovery clocks; see [NOTEBOOK.md](NOTEBOOK.md) |
 | n02, n05 | next | — | data in place, models not implemented |
-| n06, n07, n09, n10 | blocked | — | need order-book depth or event-level trades |
+| n07, n10 | not built | — | need trade-by-trade events (Binance aggTrade archives) |
+| n06, n09 | blocked | — | need order-book depth, recorded forward |
 
 `uv run --frozen xasset lab catalog` prints the same table with data needs and
-blockers; the dashboard's Strategies page renders it.
+blockers; the dashboard's Strategies page renders it with a stage-by-stage
+explanation of every strategy and a real trade and skipped setup from the latest run.
+
+## Books
+
+| Book | Universe | Strategies | Period |
+|---|---|---|---|
+| `crypto-perp` | the 50 largest Binance USD-M crypto perpetuals each month (point in time) | handbook 1-4, 6-10 (h09t) and their mirrors, long and short | Jan 2024 - Sep 2026 |
+| `us-large` | the 50 US stocks with the highest dollar volume each month, plus SPY, QQQ, IWM, SMH, sector ETFs | h01, h07, h08 (long) | Jan 2024 - Sep 2026 (download on your PC) |
+| `crypto-archive` | 28 spot coins and 12 perpetuals chosen once (superseded) | handbook 1-4, 6-10 | Jan - Sep 2026 |
+| `us-archive` | 11 thematic stocks and 18 ETFs (superseded) | h01, h08 | Jul - Sep 2026 |
+
+### Point-in-time perpetual universe
+
+`xasset lab perp-universe` lists every USD-M contract ever archived on
+data.binance.vision (886 in October 2026, delisted ones included), downloads its
+checksum-verified daily klines, and for each month keeps the 50 with the largest quote
+notional over the previous complete month (a contract needs a bar on every day of that
+month). From 28 January 2026 Binance also lists perpetuals on stocks, ETFs and
+commodities (AAPL, NVDA, SPY, QQQ, crude oil, natural gas and many more); they trade
+weekdays only (weekend notional 7-35% of weekdays, against 36% and above for crypto) and
+are excluded by a reviewed list plus a point-in-time weekday-trading rule, together
+with stablecoins, metals and composite indices. Membership churns: 329 contracts over
+33 months. Arming and breadth use members only; a replay loads the bars of members of
+the previous, current and next two months (exits across a month boundary, 20-session
+calibrations, 60-session pair screens). Ticks and lots are inferred from archive prices
+and volumes because the futures API is not reachable from the build environment.
+
+### Mirror variants
+
+The mirror of a strategy runs the unchanged rule on the inverted market: price 1/P (a
+high becomes a low), buyer- and seller-initiated notional exchanged (a taker buying the
+coin is a taker selling USDT), base volume replaced by notional^2/volume so the
+volume-weighted price inverts exactly. Every quantile, robust scale, residual model and
+breadth count of the mirrored market is therefore the exact mirror of the original, and
+no short rule is written by hand. A candidate found on 1/P is converted back: the order
+takes the opposite side, the stop is 1/K', "below" guards become "above" guards.
+Mirrors of long rules are shorts on perpetuals; the mirror of h04 is a long. They are
+new hypotheses, registered and reported separately (IDs ending in `m`), and they share
+capital and the one-position-per-coin rule with the originals.
+
+### What every run records
+
+- **Trades** in `data/lab/runs/<run>/trades.parquet` (all scenarios), each base trade
+  with its full setup timeline: arming with the frozen anchors, every state change,
+  the wider market at the decision, the confirmation, the fill and the exit.
+- **Skipped setups**: a seeded random sample of setups per strategy and expiry reason,
+  and refused or cancelled orders, in `data/lab/runs/<run>/examples.json`.
+- **Entry diagnostics**: the price move 1, 5, 15, 30 and 60 minutes after each signal
+  (before costs, whatever the exit), with day-clustered standard errors, next to random
+  entries on the same coin and time of day; and results split by the market regime at
+  the decision (benchmark up or down since the prior close and over 4 hours, calm or
+  volatile last hour).
+- The dashboard draws any trade or skipped setup on its minute chart: the coin's
+  candles, the market below, buyer and seller volume, the frozen levels, stop, target,
+  entry and exit. Charts read the local archives, so download them on the computer
+  that serves the dashboard.
 
 ## Architecture
 
@@ -134,6 +192,33 @@ src/xasset/web/                             dashboard (index.html, app.js, style
 
 ## Replay commands
 
+Crypto perpetuals (point in time, long and short):
+
+```bash
+uv run --frozen xasset lab perp-universe --start 2024-01-01T00:00Z --end 2026-09-01T00:00Z \
+  --top 50 --out config/lab/crypto-perp-universe.yaml          # already in the repository
+uv run --frozen xasset lab ingest-universe config/lab/crypto-perp-universe.yaml \
+  --start 2024-01-01T00:00Z --end 2026-10-01T00:00Z            # about 3.5 GB
+uv run --frozen xasset lab register config/lab/crypto-perp-book.yaml \
+  --start 2024-01-01T00:00Z --end 2026-10-01T00:00Z
+uv run --frozen xasset lab run config/lab/crypto-perp-book.yaml
+```
+
+Large US stocks (needs `ALPACA_API_KEY` and `ALPACA_SECRET_KEY` in the environment or
+in `.env`; only historical market-data requests are made):
+
+```bash
+uv run --frozen xasset lab us-universe --start 2024-01-01T00:00Z --end 2026-09-01T00:00Z \
+  --top 50 --out config/lab/us-large-universe.yaml
+uv run --frozen xasset lab ingest-universe config/lab/us-large-universe.yaml \
+  --start 2024-01-01T00:00Z --end 2026-10-01T00:00Z
+uv run --frozen xasset lab register config/lab/us-large-book.yaml \
+  --start 2024-01-01T00:00Z --end 2026-10-01T00:00Z
+uv run --frozen xasset lab run config/lab/us-large-book.yaml
+```
+
+Earlier books:
+
 ```bash
 # Every archive the crypto universe needs (28 spot coins, 12 USD-M perpetuals, funding):
 uv run --frozen xasset lab ingest-universe config/lab/crypto-universe.yaml \
@@ -209,6 +294,19 @@ rather than fills.
 
 See [ADDING_STRATEGIES.md](ADDING_STRATEGIES.md) for both kinds (state machines and notebook
 models): the class contract, registration, tests and books.
+
+## Rule-by-rule audit
+
+Every handbook strategy was checked against the handbook text and its equations
+(October 2026): arming conditions, frozen anchors, state transitions, expiries, stops,
+targets and time exits match. Where the text leaves room, the implementation takes
+the causal reading and says so in the strategy's docstring: h02 counts every minute
+after a burst as a pause observation until the next block proves to be a burst; h04
+builds the volume profile from minute VWAPs; h07 calibrates block notional with rolling
+ten-minute notional; h09 ends a sequence when a burst follows a recovery without a quiet
+block. The common rules (stop distance within 0.25-3 sigma_10, target at two risk
+units, 60-minute time exit, 15-minute cooldown, adverse same-bar ordering, next-quote
+entry, wrong-side and gap handling) are enforced by the runtime and broker.
 
 ## Limitations
 
