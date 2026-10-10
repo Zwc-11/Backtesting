@@ -1,0 +1,37 @@
+# Handbook strategies and their mirror-image variants on Binance USD-M perpetuals.
+# Universe: the 50 largest crypto perpetuals each month (point in time, see the universe
+# file). Archives carry trades only: prices are trade OHLC and flow is taker-side (100%
+# labelled), so strategy 9 runs as its trade-bar variant h09t and strategy 5 (complete
+# index constituents) cannot run. "m" IDs are mirrors: the same rule on 1/P with buyer
+# and seller flow exchanged, trading the opposite side (shorts; h04m is a long).
+id: crypto-perp
+universe: crypto-perp-universe.yaml
+# Frozen priority: strategies 1, 2 and 9 first, then the remaining numbers; each
+# handbook strategy is followed by its mirror.
+strategies: [h01, h01m, h02, h02m, h09t, h09tm, h03, h03m, h04, h04m, h06, h06m, h07, h07m, h08, h08m, h10, h10m]
+costs:
+  perp_major:
+    half_spread_bps: 0.5
+    impact_bps: 1.0
+    fee_bps: 5.0
+    evidence: "Binance USD-M VIP0 taker fee 0.05% (no BNB discount); BTC and ETH spread and impact are uncalibrated assumptions."
+  perp_large:
+    half_spread_bps: 1.0
+    impact_bps: 2.0
+    fee_bps: 5.0
+    evidence: "Binance USD-M VIP0 taker fee 0.05%; contracts with median rank 3-15; spread and impact are uncalibrated assumptions."
+  perp_alt:
+    half_spread_bps: 2.0
+    impact_bps: 3.0
+    fee_bps: 5.0
+    evidence: "Binance USD-M VIP0 taker fee 0.05%; contracts with median rank below 15; spread and impact are uncalibrated assumptions."
+limits:
+  initial_nav: 100000
+execution:
+  decision_latency_ms: 250
+  transport_latency_ms: 150
+  bar_settlement_ms: 1500
+  cooldown_minutes: 15
+calibration_sessions: 20
+calibration_half_window: 15
+minimum_reference: 200

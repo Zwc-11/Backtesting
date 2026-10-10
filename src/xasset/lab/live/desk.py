@@ -127,6 +127,7 @@ class LiveLedger(Ledger):
         self.recent_orders: deque[dict[str, Any]] = deque(maxlen=recent)
         self.recent_fills: deque[dict[str, Any]] = deque(maxlen=recent)
         self.counts: Counter[tuple[str, str]] = Counter()
+        self.reasons: Counter[tuple[str, str]] = Counter()
         self.last_mark: tuple[datetime, float] | None = None
 
     def event(
@@ -150,7 +151,15 @@ class LiveLedger(Ledger):
         }
         self.recent_events.append(record)
         self.counts[(strategy, event)] += 1
+        if event == "expired":
+            self.reasons[(strategy, str(detail.get("reason")))] += 1
         self.emit("events", record)
+
+    def event_counts(self, strategy: str) -> Counter[str]:
+        return Counter({e: n for (s, e), n in self.counts.items() if s == strategy})
+
+    def expiry_reasons(self, strategy: str) -> Counter[str]:
+        return Counter({r: n for (s, r), n in self.reasons.items() if s == strategy})
 
     def order(self, record: dict[str, Any]) -> None:
         self.recent_orders.append(record)
@@ -221,16 +230,9 @@ class BookDesk:
         intraday setups, which are discarded at hand-over, so they are not evaluated.
         """
         runtime = self.runtime
-        previous = runtime.market.session
-        if not runtime.market.advance(end):
+        if not runtime.advance(end):
             return
-        if previous is not None and runtime.market.session is not previous:
-            for strategy in runtime.strategies:
-                strategy.now = end
-                strategy.on_session()
-        for bar in bars:
-            if bar.end == end:
-                runtime.market.add(bar)
+        runtime.add_bars(end, bars)
         decided = max(bar.available_at for bar in bars) if bars else end
         for strategy in runtime.strategies:
             if type(strategy).evaluate is not Strategy.evaluate:
@@ -421,7 +423,10 @@ class BookDesk:
                 {
                     "id": s.id,
                     "title": s.title,
-                    "direction": "short" if s.direction < 0 else "long",
+                    # A mirror's own direction is that of the rule it inverts.
+                    "direction": "short"
+                    if getattr(s, "real_direction", s.direction) < 0
+                    else "long",
                     "targets": s.targets(),
                     "cooling": sorted(
                         symbol

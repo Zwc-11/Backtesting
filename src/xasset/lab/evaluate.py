@@ -128,9 +128,8 @@ def trade_summary(
 
 
 def event_summary(ledger: Ledger, strategy: str) -> dict[str, Any]:
-    events = [e for e in ledger.events if e["strategy"] == strategy]
-    counts = Counter(e["event"] for e in events)
-    expiries = Counter(e["detail"].get("reason") for e in events if e["event"] == "expired")
+    counts = ledger.event_counts(strategy)
+    expiries = ledger.expiry_reasons(strategy)
     orders = [o for o in ledger.orders if o["strategy"] == strategy]
     return {
         "armed": counts.get("armed", 0),

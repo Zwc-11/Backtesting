@@ -54,7 +54,10 @@ def load_month(
     latency: timedelta,
 ) -> pl.DataFrame:
     frames = []
+    loaded = universe.loaded(f"{start:%Y-%m}")
     for item in universe.instruments:
+        if loaded is not None and item.id not in loaded:
+            continue
         if item.history == "store":
             stored = load_bars(root, store_instrument(item))
             stored = stored.filter((pl.col("ts_end") > start) & (pl.col("ts_end") <= end))

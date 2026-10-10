@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from xasset.lab.mirror import mirror
 from xasset.lab.strategies.h01_resilience import Resilience
 from xasset.lab.strategies.h02_buying_bursts import BuyingBursts
 from xasset.lab.strategies.h03_pullbacks import ImprovingPullbacks
@@ -14,22 +15,24 @@ from xasset.lab.strategies.h09_selling_bursts import SellingBursts, SellingBurst
 from xasset.lab.strategies.h10_handoff import ThinSessionHandoff
 from xasset.lab.strategy import Strategy
 
-REGISTRY: dict[str, type[Strategy]] = {
-    cls.id: cls
-    for cls in (
-        Resilience,
-        BuyingBursts,
-        ImprovingPullbacks,
-        FailedRecovery,
-        ResidualBreadth,
-        LessBuyingAtResistance,
-        RisingCenter,
-        CatchUp,
-        SellingBursts,
-        SellingBurstsTradeBars,
-        ThinSessionHandoff,
-    )
-}
+HANDBOOK: tuple[type[Strategy], ...] = (
+    Resilience,
+    BuyingBursts,
+    ImprovingPullbacks,
+    FailedRecovery,
+    ResidualBreadth,
+    LessBuyingAtResistance,
+    RisingCenter,
+    CatchUp,
+    SellingBursts,
+    SellingBurstsTradeBars,
+    ThinSessionHandoff,
+)
+# Mirror-image variants (ID suffix "m"): the same rule on the inverted market, the
+# opposite side on the real instrument. Not handbook strategies; registered variants.
+MIRRORS: tuple[type[Strategy], ...] = tuple(mirror(cls) for cls in HANDBOOK)
+
+REGISTRY: dict[str, type[Strategy]] = {cls.id: cls for cls in (*HANDBOOK, *MIRRORS)}
 
 
 def resolve(ids: list[str]) -> list[type[Strategy]]:

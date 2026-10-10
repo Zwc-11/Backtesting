@@ -24,6 +24,11 @@ from xasset.lab.strategy import Candidate, Requirements, Setup, Strategy
 class ImprovingPullbacks(Strategy):
     id = "h03"
     title = "Improving pullbacks after broad breakout"
+    levels = {
+        "U": ("asset", "breakout level U"),
+        "A": ("asset", "pullback peak"),
+        "low": ("asset", "pullback low"),
+    }
     requires = Requirements(
         quotes=True,
         flow=True,
@@ -31,8 +36,8 @@ class ImprovingPullbacks(Strategy):
         notes="Aggressor-labelled seller notional, quotes and contemporaneous breadth.",
     )
 
-    def targets(self) -> list[str]:
-        return [s for s in super().targets() if s != self.universe.benchmark]
+    def candidates(self) -> list[str]:
+        return [s for s in super().candidates() if s != self.universe.benchmark]
 
     def arm(self, symbol: str) -> Setup | None:
         i, market = self.minute, self.market

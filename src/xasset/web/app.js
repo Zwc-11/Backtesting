@@ -538,8 +538,339 @@ window.addEventListener("resize", () => {
   clearTimeout(resizeTimer);
   resizeTimer = setTimeout(() => {
     for (const [host, args] of charts) if (host.isConnected && host.offsetParent !== null) lineChart(host, ...args);
+    for (const [host, args] of tradeCharts) if (host.isConnected && host.offsetParent !== null) tradeChart(host, ...args);
   }, 150);
 });
+
+/* ---------- trade charts ------------------------------------------------------ */
+const INGEST_HINT = "uv run --frozen xasset lab ingest-universe config/lab/crypto-perp-universe.yaml --start 2024-01-01T00:00Z --end 2026-10-01T00:00Z";
+const EVENT_NAMES = {
+  armed: "Armed", stabilized: "Stabilized", confirmed: "Confirmed", filled: "Filled", exited: "Exited",
+  expired: "Expired", rejected: "Order refused", cancelled: "Order cancelled", context: "Market",
+  burst: "Burst", burst_ignored: "Burst ignored", pullback: "Pullback", recovered: "Recovered",
+  visit: "Visit", at_area: "At the area", absorbed: "Absorbed", handoff: "Handoff",
+};
+const EVENT_LAMPS = { armed: "armed", confirmed: "ordered", filled: "open", exited: "cool", expired: "off", rejected: "off", cancelled: "off" };
+const tradeCharts = new Map();
+const ms = (iso) => Date.parse(iso);
+
+function contextText(d) {
+  if (!d) return "";
+  const parts = [];
+  if (finite(d.market_day)) parts.push(`since the prior close ${pct(Math.expm1(d.market_day), 2)}`);
+  if (finite(d.market_240m)) parts.push(`last 4 hours ${pct(Math.expm1(d.market_240m), 2)}`);
+  if (finite(d.market_vol_ratio)) parts.push(`last hour ${num(d.market_vol_ratio, 1)}× its usual volatility`);
+  if (finite(d.breadth_up_60m)) parts.push(`${plainPct(d.breadth_up_60m, 0)} of coins up over the hour`);
+  return parts.length ? "Benchmark " + parts.join(", ") + "." : "";
+}
+
+function eventDetail(event, payload) {
+  const d = event.detail || {};
+  if (event.event === "context") return contextText(d);
+  const parts = [];
+  if (d.reason) parts.push(d.reason);
+  const levels = (payload.levels || []).filter((l) => l.from === event.at);
+  for (const level of levels) parts.push(`${level.label} ${price(level.value)}`);
+  if (!payload.mirror) {
+    for (const [key, value] of Object.entries(d)) {
+      if (key === "reason" || key === "anchors" || levels.some((l) => l.key === key)) continue;
+      if (typeof value === "number") parts.push(`${key} ${Math.abs(value) >= 1000 ? num(value, 0) : num(value, Math.abs(value) < 0.1 ? 5 : 3)}`);
+      else if (typeof value === "string" && value.length < 24) parts.push(`${key} ${value}`);
+    }
+  }
+  if (event.event === "filled" && finite(d.price)) parts.unshift(`at ${price(d.price)}, the open of the minute after the decision (one-minute bars cannot place a fill inside the minute)`);
+  return parts.join("; ");
+}
+
+function renderTimeline(list, payload) {
+  list.replaceChildren();
+  for (const event of payload.timeline || []) {
+    const lamp = EVENT_LAMPS[event.event];
+    list.append(el("li", null,
+      el("time", { datetime: event.at }, clockTime(event.at)),
+      el("span", { class: "what" }, lamp ? el("i", { class: "lamp " + lamp }) : null, EVENT_NAMES[event.event] || words(event.event)),
+      el("span", { class: "detail" }, eventDetail(event, payload) || DASH)));
+  }
+  const trade = payload.trade;
+  if (trade) {
+    list.append(el("li", null,
+      el("time", { datetime: trade.exit_time }, clockTime(trade.exit_time)),
+      el("span", { class: "what" }, el("i", { class: "lamp cool" }), "Closed"),
+      el("span", { class: "detail" }, `${words(trade.exit_reason)} at ${price(trade.exit_price)}; net ${signed(trade.net)} after ${signed(-trade.fees)} fees`)));
+  }
+}
+
+function tradeChart(host, payload, readout) {
+  tradeCharts.set(host, [payload, readout]);
+  host.replaceChildren();
+  const asset = (payload.series || {}).asset || { bars: [] };
+  if (!asset.bars.length) {
+    host.append(el("p", { class: "muted" }, `The minute bars for ${short(asset.symbol || "")} are not on this computer. Download them with `), el("code", null, INGEST_HINT));
+    return;
+  }
+  const extras = ["benchmark", "leader"].filter((k) => payload.series[k] && payload.series[k].bars.length);
+  const width = Math.max(300, host.clientWidth);
+  const narrow = width < 640;
+  const left = 8, right = narrow ? 84 : 150, mainH = narrow ? 240 : 280, extraH = 96, flowH = 54, gap = 22, axisH = 22, top = narrow ? 38 : 26;
+  const height = top + mainH + extras.length * (extraH + gap) + gap + flowH + axisH;
+  const t0 = ms(payload.window[0]), t1 = ms(payload.window[1]);
+  const plotW = width - left - right;
+  const x = (t) => left + ((t - t0) / (t1 - t0)) * plotW;
+  const minuteW = plotW / Math.max(1, (t1 - t0) / 60000);
+  const chart = svg("svg", { viewBox: `0 0 ${width} ${height}`, width, height, role: "img", "aria-label": `Minute chart of ${short(asset.symbol)} with the setup, entry and exit` });
+  const text = (cls, xx, yy, value, anchor = "start") => { const t = svg("text", { class: cls, x: xx, y: yy, "text-anchor": anchor }); t.textContent = value; chart.append(t); return t; };
+  const trade = payload.trade;
+  const levelsFor = (series) => (payload.levels || []).filter((l) => l.series === series);
+
+  function panel(y0, h, rows, series, candles) {
+    const values = [];
+    for (const r of rows) { if (candles) values.push(r[2], r[3]); else values.push(r[4]); }
+    for (const l of levelsFor(series)) values.push(l.value);
+    if (series === "asset" && trade) values.push(trade.entry_price, trade.exit_price, trade.stop, ...(finite(trade.target) ? [trade.target] : []));
+    let lo = Math.min(...values.filter(finite)), hi = Math.max(...values.filter(finite));
+    if (hi - lo < hi * 1e-6) { hi *= 1.001; lo *= 0.999; }
+    const pad = (hi - lo) * 0.06; lo -= pad; hi += pad;
+    const y = (v) => y0 + (1 - (v - lo) / (hi - lo)) * h;
+    chart.append(svg("rect", { x: left, y: y0, width: plotW, height: h, fill: "none", class: "grid" }));
+    if (candles) {
+      const bw = Math.max(1, Math.min(9, minuteW * 0.66));
+      for (const r of rows) {
+        const end = ms(r[0]), cx = x(end - 30000), up = r[4] >= r[1];
+        const cls = up ? "up" : "down";
+        chart.append(svg("line", { class: "wick " + cls, x1: cx, x2: cx, y1: y(r[2]), y2: y(r[3]) }));
+        const yo = y(r[1]), yc = y(r[4]);
+        chart.append(svg("rect", { class: cls, x: cx - bw / 2, y: Math.min(yo, yc), width: bw, height: Math.max(1, Math.abs(yc - yo)) }));
+      }
+    } else {
+      chart.append(svg("polyline", { class: "series", points: rows.map((r) => `${x(ms(r[0]) - 30000).toFixed(1)},${y(r[4]).toFixed(1)}`).join(" ") }));
+    }
+    const labels = [];
+    for (const l of levelsFor(series)) {
+      const from = Math.max(t0, l.from ? ms(l.from) : t0);
+      chart.append(svg("line", { class: "level", x1: x(from), x2: left + plotW, y1: y(l.value), y2: y(l.value) }));
+      labels.push({ y: y(l.value), text: narrow ? `${l.key} ${price(l.value)}` : `${l.label} ${price(l.value)}`, cls: "level-label" });
+    }
+    return { y, lo, hi, labels };
+  }
+
+  function placeLabels(labels, y0, h) {
+    labels.sort((a, b) => a.y - b.y);
+    let last = -Infinity;
+    for (const item of labels) {
+      const yy = Math.min(y0 + h - 2, Math.max(y0 + 10, Math.max(item.y + 4, last + 13)));
+      last = yy;
+      text(item.cls, left + plotW + 6, yy, item.text);
+    }
+  }
+
+  const main = panel(top, mainH, asset.bars, "asset", true);
+  text("panel-label", left + 6, top + 14, `${short(asset.symbol)}${payload.mirror && !narrow ? " (mirror strategy: levels shown on the real price)" : ""}`);
+  if (trade) {
+    const a = ms(trade.entry_time), b = ms(trade.exit_time);
+    chart.append(svg("line", { class: "stop", x1: x(a), x2: x(b), y1: main.y(trade.stop), y2: main.y(trade.stop) }));
+    main.labels.push({ y: main.y(trade.stop), text: `Stop ${price(trade.stop)}`, cls: "trade-label stop-label" });
+    if (finite(trade.target)) {
+      chart.append(svg("line", { class: "target", x1: x(a), x2: x(b), y1: main.y(trade.target), y2: main.y(trade.target) }));
+      main.labels.push({ y: main.y(trade.target), text: `Target ${price(trade.target)}`, cls: "trade-label target-label" });
+    }
+    const ex = x(a), ey = main.y(trade.entry_price), s = 7, dir = trade.direction > 0 ? 1 : -1;
+    chart.append(svg("path", { class: "fill-mark", d: `M${ex},${ey} l${-s},${dir * s * 1.6} l${2 * s},0 z` }));
+    chart.append(svg("circle", { class: "exit-mark", cx: x(b), cy: main.y(trade.exit_price), r: 5 }));
+    main.labels.push({ y: ey, text: `${trade.direction > 0 ? "Buy" : "Sell"} ${price(trade.entry_price)}`, cls: "trade-label" });
+    main.labels.push({ y: main.y(trade.exit_price), text: `Exit ${price(trade.exit_price)}`, cls: "trade-label" });
+  }
+  placeLabels(main.labels, top, mainH);
+
+  let y0 = top + mainH + gap;
+  for (const key of extras) {
+    const series = payload.series[key];
+    const p = panel(y0, extraH, series.bars, key, false);
+    text("panel-label", left + 6, y0 + 14, `${key === "benchmark" ? "Market" : "Leader"}: ${short(series.symbol)}`);
+    placeLabels(p.labels, y0, extraH);
+    y0 += extraH + gap;
+  }
+  const flows = asset.bars.filter((r) => finite(r[5]) && finite(r[6]));
+  if (flows.length) {
+    const peak = Math.max(...flows.map((r) => Math.max(r[5], r[6]))) || 1;
+    const mid = y0 + flowH / 2, bw = Math.max(1, Math.min(9, minuteW * 0.66));
+    chart.append(svg("line", { class: "grid", x1: left, x2: left + plotW, y1: mid, y2: mid }));
+    for (const r of flows) {
+      const cx = x(ms(r[0]) - 30000);
+      const hb = (r[5] / peak) * (flowH / 2 - 2), hs = (r[6] / peak) * (flowH / 2 - 2);
+      chart.append(svg("rect", { class: "buy", x: cx - bw / 2, y: mid - hb, width: bw, height: hb }));
+      chart.append(svg("rect", { class: "sell", x: cx - bw / 2, y: mid, width: bw, height: hs }));
+    }
+    text("level-label", left + plotW + 6, mid - 6, "buyers");
+    text("level-label", left + plotW + 6, mid + 14, "sellers");
+  }
+  const bottom = y0 + flowH;
+  let lastLabel = -Infinity, row = 0;
+  for (const event of payload.timeline || []) {
+    if (event.event === "context") continue;
+    const ex = x(ms(event.at));
+    if (ex < left || ex > left + plotW) continue;
+    chart.append(svg("line", { class: "event", x1: ex, x2: ex, y1: top, y2: bottom }));
+    const rows = narrow ? 3 : 2;
+    row = ex - lastLabel < 70 ? (row + 1) % rows : 0;
+    lastLabel = ex;
+    text("event-label", ex + 3, 10 + row * 12, EVENT_NAMES[event.event] || words(event.event));
+  }
+  const step = (t1 - t0) / 60000 > 240 ? 60 : (t1 - t0) / 60000 > 90 ? 30 : 15;
+  for (let t = Math.ceil(t0 / (step * 60000)) * step * 60000; t <= t1; t += step * 60000) {
+    chart.append(svg("line", { class: "grid", x1: x(t), x2: x(t), y1: bottom, y2: bottom + 4 }));
+    text("axis", x(t), bottom + 16, shortTime(new Date(t).toISOString()), "middle");
+  }
+  const cursor = svg("line", { class: "cursor", y1: top, y2: bottom, x1: -10, x2: -10 });
+  chart.append(cursor);
+  const bars = asset.bars;
+  const describe = (r) => `${dayTime(r[0])} UTC  open ${price(r[1])}  high ${price(r[2])}  low ${price(r[3])}  close ${price(r[4])}` + (finite(r[5]) ? `  buyers ${num(r[5], 0)}  sellers ${num(r[6], 0)}` : "");
+  if (readout) readout.textContent = "Move over the chart to read each minute.";
+  chart.addEventListener("pointermove", (event) => {
+    const box = chart.getBoundingClientRect();
+    const t = t0 + (((event.clientX - box.left) / box.width) * width - left) / plotW * (t1 - t0);
+    let best = bars[0];
+    for (const r of bars) if (Math.abs(ms(r[0]) - 30000 - t) < Math.abs(ms(best[0]) - 30000 - t)) best = r;
+    const cx = x(ms(best[0]) - 30000);
+    cursor.setAttribute("x1", cx); cursor.setAttribute("x2", cx);
+    if (readout) readout.textContent = describe(best);
+  });
+  host.append(chart);
+}
+
+function showInspector(payload, title, subtitle) {
+  const box = $("trade-inspector");
+  box.hidden = false;
+  $("inspector-title").textContent = title;
+  $("inspector-subtitle").textContent = subtitle;
+  tradeChart($("trade-chart"), payload, $("trade-readout"));
+  renderTimeline($("trade-timeline"), payload);
+  box.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+function sideWord(direction) { return direction > 0 ? "long" : "short"; }
+async function openTrade(trade) {
+  const payload = await api(`/api/lab/runs/${encodeURIComponent(state.run.id)}/trades/${encodeURIComponent(trade.id)}/chart`);
+  const t = payload.trade;
+  const risk = Math.abs(t.entry_price - t.stop) * t.qty;
+  const r = risk > 0 ? t.net / risk : null;
+  showInspector(payload, `${t.strategy} on ${short(t.symbol)}, ${sideWord(t.direction)}`,
+    `Entered ${dayTime(t.entry_time)} at ${price(t.entry_price)}, exited ${shortTime(t.exit_time)} at ${price(t.exit_price)} (${words(t.exit_reason).toLowerCase()}). Net ${signed(t.net)}, ${signed(r, 2)} R.`);
+}
+async function openExample(example) {
+  const payload = await api(`/api/lab/runs/${encodeURIComponent(state.run.id)}/examples/${encodeURIComponent(example.strategy)}/${example.index}/chart`);
+  showInspector(payload, `${example.strategy} on ${short(example.symbol)}: no entry`,
+    `Armed ${dayTime(example.armed_at)}. ${words(example.outcome)}: ${example.reason}.`);
+}
+
+function renderDiagnostics(detail) {
+  const diagnostics = detail.diagnostics;
+  $("run-diagnostics").hidden = !diagnostics;
+  if (!diagnostics) return;
+  const horizons = diagnostics.horizons_minutes || [];
+  const body = head($("run-markouts"), ["Strategy", ["Signals", true], ...horizons.map((h) => [`After ${h} min`, true]), ["Random entries, 30 min", true]]);
+  const strategies = Object.keys(detail.strategies || {});
+  for (const sid of strategies) {
+    const m = (diagnostics.markouts || {})[sid];
+    if (!m) continue;
+    const at30 = m.horizons.find((h) => h.minutes === 30) || {};
+    body.append(cells([el("span", { class: "id" }, sid), n(num(m.signals, 0)),
+      ...m.horizons.map((h) => n(finite(h.mean_bps) ? `${signed(h.mean_bps, 1)} ± ${num(2 * (h.se_bps || 0), 1)}` : DASH, tone(h.mean_bps))),
+      n(signed(at30.placebo_bps, 1))]));
+  }
+  if (!body.children.length) emptyRow(body, horizons.length + 3, "No trades to measure in this run.");
+  const order = ["market up since prior close", "market down since prior close", "market up last 4h", "market down last 4h", "calm market (last hour)", "volatile market (last hour)"];
+  const present = new Set(Object.values(diagnostics.regimes || {}).flatMap((r) => Object.keys(r)));
+  const regimeNames = [...order.filter((name) => present.has(name)), ...[...present].filter((name) => !order.includes(name))];
+  const rbody = head($("run-regimes"), ["Strategy", ...regimeNames.map((name) => [words(name), true])]);
+  for (const sid of strategies) {
+    const r = (diagnostics.regimes || {})[sid];
+    if (!r) continue;
+    rbody.append(cells([el("span", { class: "id" }, sid), ...regimeNames.map((name) => {
+      const v = r[name];
+      return v ? n(`${signed(v.mean_net_bps, 1)} bp (${num(v.trades, 0)})`, tone(v.mean_net_bps)) : n(DASH);
+    })]));
+  }
+  if (!rbody.children.length) emptyRow(rbody, regimeNames.length + 1, "No trades to split.");
+}
+
+async function loadExamples() {
+  const section = $("run-examples");
+  if (!state.run || !state.run.detail.has_trade_file) { section.hidden = true; return; }
+  const filter = state.strategyFilter ? `?strategy=${encodeURIComponent(state.strategyFilter)}` : "";
+  const data = await api(`/api/lab/runs/${encodeURIComponent(state.run.id)}/examples${filter}`);
+  section.hidden = !(data.examples || []).length;
+  const body = head($("run-examples-table"), ["Strategy", "Instrument", "Armed", "Outcome", "What stopped it"]);
+  for (const example of data.examples || []) {
+    const row = cells([el("span", { class: "id" }, example.strategy), el("span", { class: "id" }, short(example.symbol)), dayTime(example.armed_at), words(example.outcome), example.reason]);
+    row.className = "selectable";
+    row.tabIndex = 0;
+    const open = () => openExample(example).catch(report);
+    row.addEventListener("click", open);
+    row.addEventListener("keydown", (e) => { if (e.key === "Enter") open(); });
+    body.append(row);
+  }
+}
+
+/* ---------- strategy explainer ------------------------------------------------- */
+function stageItem(number, lamp, title, parts) {
+  return el("li", null,
+    el("div", { class: "rail" }, el("i", { class: "lamp " + lamp }), number),
+    el("h3", null, title), ...parts);
+}
+function bulletList(items, cls) { return el("ul", { class: cls || null }, ...(items || []).map((t) => el("li", null, t))); }
+async function openExplainer(item) {
+  const box = $("explainer");
+  const explain = item.explain;
+  if (!explain) return;
+  box.hidden = false;
+  $("explainer-title").textContent = `${item.id}  ${item.title || ""}`;
+  $("explainer-subtitle").textContent = `${item.idea || ""} ${words(item.direction || "")}, ${explain.time_exit_minutes}-minute time exit.${explain.note ? " " + explain.note : ""}`;
+  const stages = $("explainer-stages");
+  stages.replaceChildren();
+  explain.stages.forEach((stage, index) => {
+    const lamp = index === 0 ? "armed" : index === explain.stages.length - 1 ? "ordered" : "armed";
+    const parts = [el("p", { class: "label" }, "Moves on when"), bulletList(stage.when)];
+    if ((stage.stop || []).length) parts.push(el("p", { class: "label" }, "Ends without a trade if"), bulletList(stage.stop, "kills"));
+    if (stage.freeze) parts.push(el("p", { class: "freeze" }, "Frozen: " + stage.freeze));
+    stages.append(stageItem(`Stage ${index + 1}`, lamp, stage.state, parts));
+  });
+  stages.append(stageItem("Order", "open", explain.order, [
+    el("p", { class: "label" }, "Exits"),
+    bulletList([`Stop ${explain.stop}.`, ...explain.exits, `Time exit after ${explain.time_exit_minutes} minutes.`]),
+  ]));
+  const examples = $("explainer-examples");
+  examples.replaceChildren(el("p", { class: "muted" }, "Looking for a real trade and a real skipped setup in the latest replay…"));
+  box.scrollIntoView({ behavior: "smooth", block: "start" });
+  try { await explainerExamples(item, examples); } catch (error) { if (error instanceof AuthRequired) throw error; examples.replaceChildren(el("p", { class: "muted" }, error.message)); }
+}
+async function explainerExamples(item, host) {
+  const runs = (await api("/api/lab/runs")).runs || [];
+  const run = runs.find((r) => r.status === "completed" && r.strategies && r.strategies[item.id] && r.kind !== "notebook-study");
+  host.replaceChildren();
+  if (!run) { host.append(el("p", { class: "muted" }, "No completed replay includes this strategy yet.")); return; }
+  const trades = await api(`/api/lab/runs/${encodeURIComponent(run.id)}/trades?strategy=${encodeURIComponent(item.id)}&limit=1`);
+  const trade = (trades.trades || [])[0];
+  if (trade && trade.id) {
+    try {
+      const payload = await api(`/api/lab/runs/${encodeURIComponent(run.id)}/trades/${encodeURIComponent(trade.id)}/chart`);
+      const chartHost = el("div", { class: "trade-chart" });
+      host.append(el("h3", null, `A real trade: ${short(trade.symbol)}, ${dayTime(trade.entry_time)} (${run.book})`),
+        el("p", { class: "example-reason" }, `${words(trade.exit_reason)}; net ${signed(trade.net)}.`), chartHost);
+      tradeChart(chartHost, payload, null);
+    } catch (error) {
+      if (error instanceof AuthRequired) throw error;
+      host.append(el("p", { class: "muted" }, `Trade charts need a run made by this version (${error.message}).`));
+    }
+  } else host.append(el("p", { class: "muted" }, `${run.book} has no trades for ${item.id}.`));
+  const examples = (await api(`/api/lab/runs/${encodeURIComponent(run.id)}/examples?strategy=${encodeURIComponent(item.id)}`)).examples || [];
+  const skipped = examples.find((e) => e.outcome === "expired") || examples[0];
+  if (skipped) {
+    const payload = await api(`/api/lab/runs/${encodeURIComponent(run.id)}/examples/${encodeURIComponent(skipped.strategy)}/${skipped.index}/chart`);
+    const chartHost = el("div", { class: "trade-chart" });
+    host.append(el("h3", null, `A skipped setup: ${short(skipped.symbol)}, ${dayTime(skipped.armed_at)}`),
+      el("p", { class: "example-reason" }, `${words(skipped.outcome)}: ${skipped.reason}.`), chartHost);
+    tradeChart(chartHost, payload, null);
+  }
+}
 
 /* ---------- strategies ---------------------------------------------------- */
 const MODES = {
@@ -561,8 +892,9 @@ async function loadCatalog() {
     books.push({ book, trades });
   }
   const context = { runs: runs.runs || [], books };
-  renderCatalog($("handbook"), state.catalog.filter((s) => s.id.startsWith("h")), context);
+  renderCatalog($("handbook"), state.catalog.filter((s) => s.id.startsWith("h") && !s.mirror_of), context);
   renderCatalog($("notebook"), state.catalog.filter((s) => s.id.startsWith("n")), context);
+  renderCatalog($("mirrors"), state.catalog.filter((s) => s.mirror_of), context);
 }
 function latestReplay(sid, runs) {
   for (const run of runs) {
@@ -617,7 +949,16 @@ function renderCatalog(table, items, context) {
       item.direction ? el("span", { class: "muted" }, ` (${item.direction}${item.time_exit_minutes ? ", " + item.time_exit_minutes + "-minute time exit" : ""})`) : null,
       el("span", { class: "cell-sub" }, item.idea || ""));
     const needs = el("div", null, item.assets || DASH, el("span", { class: "cell-sub" }, (item.data || []).join(", ")));
-    body.append(cells([name, where, replayCell(item.id, context), paperCell(item.id, context), needs]));
+    const row = cells([name, where, replayCell(item.id, context), paperCell(item.id, context), needs]);
+    if (item.explain) {
+      row.className = "selectable";
+      row.tabIndex = 0;
+      row.title = "Show how this strategy enters";
+      const open = () => openExplainer(item).catch(report);
+      row.addEventListener("click", open);
+      row.addEventListener("keydown", (e) => { if (e.key === "Enter") open(); });
+    }
+    body.append(row);
   }
 }
 
@@ -668,10 +1009,12 @@ async function loadRuns() {
 }
 async function selectRun(id) {
   const detail = await api(`/api/lab/runs/${encodeURIComponent(id)}?scenario=${state.scenario}`);
+  if (!state.run || state.run.id !== id) $("trade-inspector").hidden = true;
   state.run = { id, detail };
   for (const row of $("runs").querySelectorAll("tr[data-run]")) row.setAttribute("aria-selected", String(row.dataset.run === id));
   renderRun(detail);
   await loadRunTrades();
+  await loadExamples();
 }
 function renderRun(detail) {
   $("run-detail").hidden = false;
@@ -716,7 +1059,7 @@ function renderRun(detail) {
     row.className = "selectable";
     row.tabIndex = 0;
     row.setAttribute("aria-selected", String(state.strategyFilter === sid));
-    const pick = () => { state.strategyFilter = state.strategyFilter === sid ? null : sid; renderRun(detail); loadRunTrades().catch(report); };
+    const pick = () => { state.strategyFilter = state.strategyFilter === sid ? null : sid; renderRun(detail); loadRunTrades().then(loadExamples).catch(report); };
     row.addEventListener("click", pick);
     row.addEventListener("keydown", (ev) => { if (ev.key === "Enter") pick(); });
     body.append(row);
@@ -726,6 +1069,7 @@ function renderRun(detail) {
     ? "Adjusted p comes from a block-bootstrap max-T test across every sleeve in this run, baselines included. Each strategy trades its own sleeve with equal starting capital; the chart combines the strategy sleeves. Select a row to filter the trades below."
     : "Adjusted p comes from a block-bootstrap max-T test across this book's strategies, so it accounts for testing several at once. Mean net is per trade after costs. Select a strategy to filter the trades below.";
   renderEvidence(detail, study);
+  renderDiagnostics(detail);
 }
 function checksText(sid, checks) {
   if (!checks) return DASH;
@@ -765,11 +1109,23 @@ async function loadRunTrades() {
   const filter = state.strategyFilter ? `&strategy=${encodeURIComponent(state.strategyFilter)}` : "";
   const data = await api(`/api/lab/runs/${encodeURIComponent(state.run.id)}/trades?scenario=${state.scenario}&limit=300${filter}`);
   $("run-trades-title").textContent = state.strategyFilter ? `Trades for ${state.strategyFilter}` : "Trades";
+  const charts = Boolean(state.run.detail.has_trade_file);
+  $("run-trades-note").textContent = charts
+    ? "Select a trade to see it on the minute chart: the setup, the frozen levels, the entry, the stop, the target and the exit."
+    : "This run was made before trade charts existed; run the book again to inspect trades on the chart.";
   const body = head($("run-trades"), ["Entry", "Instrument", "Strategy", "Side", ["Entry price", true], ["Exit price", true], "Exit", ["Net", true], ["R", true]]);
   for (const t of data.trades || []) {
     const risk = Math.abs(t.entry_price - t.stop) * t.qty;
     const r = risk > 0 ? t.net / risk : null;
-    body.append(cells([dayTime(t.entry_time), el("span", { class: "id" }, t.symbol), t.strategy, t.direction > 0 ? "Long" : "Short", n(price(t.entry_price)), n(price(t.exit_price)), words(t.exit_reason) + (t.ambiguous_bar ? " (stop and target in one bar)" : ""), n(signed(t.net), tone(t.net)), n(signed(r, 2), tone(r))]));
+    const row = cells([dayTime(t.entry_time), el("span", { class: "id" }, short(t.symbol)), t.strategy, t.direction > 0 ? "Long" : "Short", n(price(t.entry_price)), n(price(t.exit_price)), words(t.exit_reason) + (t.ambiguous_bar ? " (stop and target in one bar)" : ""), n(signed(t.net), tone(t.net)), n(signed(r, 2), tone(r))]);
+    if (charts && t.id) {
+      row.className = "selectable";
+      row.tabIndex = 0;
+      const open = () => openTrade(t).catch(report);
+      row.addEventListener("click", open);
+      row.addEventListener("keydown", (e) => { if (e.key === "Enter") open(); });
+    }
+    body.append(row);
   }
   if (!(data.trades || []).length) emptyRow(body, 9, "No trades in this selection.");
   else if (data.total > (data.trades || []).length) body.append(el("tr", null, el("td", { class: "empty", colspan: "9" }, `Showing the latest ${data.trades.length} of ${num(data.total, 0)} trades.`)));
@@ -911,6 +1267,8 @@ function start() {
     });
   }
   for (const id of ["horizon", "kind", "edge-state"]) $(id).addEventListener("change", () => loadMap().catch(report));
+  $("inspector-close").addEventListener("click", () => { $("trade-inspector").hidden = true; });
+  $("explainer-close").addEventListener("click", () => { $("explainer").hidden = true; });
   $("login-form").addEventListener("submit", async (event) => {
     event.preventDefault();
     const response = await fetch("/api/session", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token: $("token").value }) });

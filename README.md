@@ -39,12 +39,15 @@ py -3.12 scripts\backup.py restore-checkpoint artifacts\checkpoint-20261009 data
 
 ## Strategy lab and paper desk
 
-The supplied strategy handbook runs as ten state-machine strategies on one causal
-runtime: replayed over Binance and SIP archives (`xasset lab`) and live on a paper
-desk fed by public Binance spot and Hyperliquid quotes (`xasset-app paper`), with
-simulated bid/ask fills and no order routing. The dashboard shows a live state
-board of every strategy on every instrument, open positions, results, registered
-runs and data health. See [docs/LAB.md](docs/LAB.md). Model strategies 1, 3, 4 and 8
+The supplied strategy handbook runs as ten state-machine strategies, each with a
+mirror-image short (or long) variant, on one causal runtime: replayed over the 50
+largest Binance USD-M crypto perpetuals of each month since January 2024 and over
+large-cap US stocks (`xasset lab`), and live on a paper desk fed by public Binance
+spot and Hyperliquid quotes (`xasset-app paper`), with simulated bid/ask fills and no
+order routing. The dashboard shows a live state board, every strategy explained stage
+by stage, registered runs with every trade drawn on its minute chart (setup, frozen
+levels, entry, stop, target, exit), entry diagnostics against random entries, results
+by market regime, and data health. See [docs/LAB.md](docs/LAB.md). Model strategies 1, 3, 4 and 8
 from the experimental notebook run as registered walk-forward studies on a
 survivorship-aware Binance universe; see [docs/NOTEBOOK.md](docs/NOTEBOOK.md). To add
 your own strategies, follow [docs/ADDING_STRATEGIES.md](docs/ADDING_STRATEGIES.md).

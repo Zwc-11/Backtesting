@@ -26,13 +26,17 @@ class Resilience(Strategy):
         notes="Benchmark, at least 20 synchronized peers and a frozen residual model.",
     )
     window = 30
+    levels = {
+        "K0": ("asset", "stress-window low K0"),
+        "KM": ("benchmark", "market stress low KM"),
+    }
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         super().__init__(*args, **kwargs)  # type: ignore[arg-type]
         self._stress: tuple[int, dict[str, float] | None] | None = None
 
-    def targets(self) -> list[str]:
-        return [s for s in super().targets() if s != self.universe.benchmark]
+    def candidates(self) -> list[str]:
+        return [s for s in super().candidates() if s != self.universe.benchmark]
 
     def market_stress(self) -> dict[str, float] | None:
         """Benchmark conditions shared by every asset at this minute (memoized)."""

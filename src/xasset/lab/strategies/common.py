@@ -38,6 +38,16 @@ def block_at(tape: Tape, end: int) -> Block | None:
     """
     if end % 2 != 1 or end < 1:
         return None
+    key = ("block", end)
+    if key in tape.memo:
+        return tape.memo[key]  # type: ignore[return-value]
+    block = _block(tape, end)
+    if end <= tape.last:  # a block over completed minutes can no longer change
+        tape.memo[key] = block
+    return block
+
+
+def _block(tape: Tape, end: int) -> Block | None:
     start = end - 1
     if start == 0:
         reference = None if math.isnan(tape.o[0]) else float(tape.o[0])

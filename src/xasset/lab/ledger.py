@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import random
+from collections import Counter
 from collections.abc import Callable
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
@@ -95,6 +97,89 @@ class Ledger:
 
     def mark(self, at: datetime, value: float) -> None:
         self.nav.append((at, value))
+
+    def event_counts(self, strategy: str) -> Counter[str]:
+        return Counter(e["event"] for e in self.events if e["strategy"] == strategy)
+
+    def expiry_reasons(self, strategy: str) -> Counter[str]:
+        return Counter(
+            str(e["detail"].get("reason"))
+            for e in self.events
+            if e["strategy"] == strategy and e["event"] == "expired"
+        )
+
+
+TERMINAL_EVENTS = frozenset({"expired", "cancelled", "rejected", "exited"})
+
+
+class CompactLedger(Ledger):
+    """Replay ledger that keeps counts for every event but full records selectively.
+
+    A setup's events are buffered while it is alive. When it ends, its full timeline
+    is kept if it was confirmed (it produced an order: these are the trades and
+    rejected or cancelled orders), otherwise only counters are updated, plus a small
+    seeded random sample of expired setups per (strategy, reason) as examples of
+    "why no entry". Memory stays proportional to confirmed setups, not to every arm.
+    """
+
+    def __init__(self, samples: int = 3, seed: int = 20260101):
+        super().__init__()
+        self.counts: Counter[tuple[str, str]] = Counter()
+        self.reasons: Counter[tuple[str, str]] = Counter()
+        self.alive: dict[str, list[dict[str, Any]]] = {}
+        self.timelines: dict[str, list[dict[str, Any]]] = {}
+        self.samples: dict[tuple[str, str], list[list[dict[str, Any]]]] = {}
+        self._seen: Counter[tuple[str, str]] = Counter()
+        self._capacity = samples
+        self._random = random.Random(seed)
+
+    def event(
+        self,
+        at: datetime,
+        strategy: str,
+        symbol: str,
+        setup: str,
+        event: str,
+        state: str,
+        **detail: Any,
+    ) -> None:
+        record = {
+            "at": iso(at),
+            "strategy": strategy,
+            "symbol": symbol,
+            "setup": setup,
+            "event": event,
+            "state": state,
+            "detail": detail,
+        }
+        self.counts[(strategy, event)] += 1
+        trail = self.alive.setdefault(setup, [])
+        trail.append(record)
+        self.emit("events", record)
+        if event not in TERMINAL_EVENTS:
+            return
+        del self.alive[setup]
+        reason = str(detail.get("reason"))
+        if event == "expired":
+            self.reasons[(strategy, reason)] += 1
+        if any(item["event"] == "confirmed" for item in trail):
+            self.timelines[setup] = trail
+        elif event == "expired":
+            key = (strategy, reason)
+            self._seen[key] += 1
+            bucket = self.samples.setdefault(key, [])
+            if len(bucket) < self._capacity:
+                bucket.append(trail)
+            else:  # reservoir sampling keeps a uniform sample over the whole run
+                slot = self._random.randrange(self._seen[key])
+                if slot < self._capacity:
+                    bucket[slot] = trail
+
+    def event_counts(self, strategy: str) -> Counter[str]:
+        return Counter({e: n for (s, e), n in self.counts.items() if s == strategy})
+
+    def expiry_reasons(self, strategy: str) -> Counter[str]:
+        return Counter({r: n for (s, r), n in self.reasons.items() if s == strategy})
 
 
 def trade_json(trade: TradeRecord) -> dict[str, Any]:

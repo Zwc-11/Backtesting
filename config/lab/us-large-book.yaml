@@ -1,0 +1,36 @@
+# Large US stocks (top 50 by dollar volume each month) on Alpaca SIP regular-session
+# minute bars. Bars carry trade VWAP but no buyer/seller labels, so only the strategies
+# that need no aggressor flow run here: 1 (relative strength), 7 (rising trading center,
+# from trade VWAP) and 8 (sector ETF leads, constituents follow). Strategy 10 needs
+# pre-market bars and strategy 5 a complete constituent set; both are excluded. Longs
+# only: short sales of equities need borrow records this project does not have.
+# Generate the universe first (needs Alpaca keys):
+#   uv run --frozen xasset lab us-universe --start 2024-01-01T00:00Z --end 2026-09-01T00:00Z --out config/lab/us-large-universe.yaml
+id: us-large
+universe: us-large-universe.yaml
+strategies: [h01, h07, h08]
+costs:
+  us_etf:
+    half_spread_bps: 0.5
+    impact_bps: 1.0
+    fee_bps: 0.0
+    fee_per_unit: 0.005
+    minimum_fee: 1.0
+    evidence: "IBKR Pro fixed USD 0.005/share, USD 1 minimum; ETF spread and impact are uncalibrated."
+  us_stock:
+    half_spread_bps: 1.0
+    impact_bps: 1.0
+    fee_bps: 0.0
+    fee_per_unit: 0.005
+    minimum_fee: 1.0
+    evidence: "IBKR Pro fixed USD 0.005/share, USD 1 minimum; large-cap spread and impact are uncalibrated."
+limits:
+  initial_nav: 100000
+execution:
+  decision_latency_ms: 250
+  transport_latency_ms: 150
+  bar_settlement_ms: 1500
+  cooldown_minutes: 15
+calibration_sessions: 20
+calibration_half_window: 15
+minimum_reference: 200
