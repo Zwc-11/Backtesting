@@ -250,12 +250,14 @@ def ingest_minutes(
                     "trades": int(raw.get("n") or 0), "source": SOURCE,
                 }
             )  # fmt: skip
-        frame = pl.DataFrame(
-            records, schema_overrides={k: FLOW_SCHEMA[k] for k in FLOW_SCHEMA.names()}
-        )
-        for name in FLOW_SCHEMA.names():
-            if name not in frame.columns:
-                frame = frame.with_columns(pl.lit(None, dtype=FLOW_SCHEMA[name]).alias(name))
+        frame = pl.DataFrame(schema=FLOW_SCHEMA)  # a month without session bars stays empty
+        if records:
+            frame = pl.DataFrame(
+                records, schema_overrides={k: FLOW_SCHEMA[k] for k in FLOW_SCHEMA.names()}
+            )
+            for name in FLOW_SCHEMA.names():
+                if name not in frame.columns:
+                    frame = frame.with_columns(pl.lit(None, dtype=FLOW_SCHEMA[name]).alias(name))
         frame = frame.select(FLOW_SCHEMA.names()).sort("ts_end")
         with atomic_path(target) as temporary:
             frame.write_parquet(temporary, compression="zstd")
