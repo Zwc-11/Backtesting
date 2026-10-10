@@ -81,13 +81,15 @@ class FlowBar:
     def price(self, basis: Basis) -> tuple[float, float, float, float] | None:
         """(open, high, low, close) on the requested basis, or None when unobserved."""
         if basis == "mid":
-            values = (self.mid_open, self.mid_high, self.mid_low, self.mid_close)
+            o, h, lo, c = self.mid_open, self.mid_high, self.mid_low, self.mid_close
         else:
-            values = (self.open, self.high, self.low, self.close)
-        if any(value is None or not math.isfinite(value) or value <= 0 for value in values):
+            o, h, lo, c = self.open, self.high, self.low, self.close
+        if o is None or h is None or lo is None or c is None:
             return None
-        o, h, lo, c = (float(value) for value in values if value is not None)
-        return o, h, lo, c
+        # Chained comparisons reject NaN, infinities and non-positive prices.
+        if not (0 < o < math.inf and 0 < h < math.inf and 0 < lo < math.inf and 0 < c < math.inf):
+            return None
+        return float(o), float(h), float(lo), float(c)
 
     @property
     def classified_notional(self) -> float | None:

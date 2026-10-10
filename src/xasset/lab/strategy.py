@@ -77,9 +77,13 @@ class Strategy:
     id: ClassVar[str]
     title: ClassVar[str]
     direction: ClassVar[int] = 1
-    kinds: ClassVar[tuple[Kind, ...]] = ("spot", "equity", "etf")
+    # Longs trade any kind; the handbook's intended crypto instruments are perpetuals.
+    kinds: ClassVar[tuple[Kind, ...]] = ("spot", "equity", "etf", "perp")
     requires: ClassVar[Requirements]
     time_exit_minutes: ClassVar[int] = 60
+    # Anchor or event-detail keys that are price levels: key -> (series, label), where
+    # series is "asset", "benchmark" or "leader" (the anchor named "leader"). Charts use it.
+    levels: ClassVar[dict[str, tuple[str, str]]] = {}
     trade_bar_variant: ClassVar[str] = (
         "Trade prices replace quote midpoints (separately registered trade-bar variant)."
     )
@@ -95,10 +99,22 @@ class Strategy:
         self.now: datetime | None = None  # decision time of the current evaluation
         self.prefix = ""  # set by the runtime so IDs stay unique across live restarts
         self._sequence = itertools.count(1)
+        self._targets: tuple[tuple[int, str | None], list[str]] | None = None
 
     # --- universe -------------------------------------------------------------------
-    def targets(self) -> list[str]:
+    def candidates(self) -> list[str]:
+        """Instruments this strategy can trade at all (by kind), before membership."""
         return [item.id for item in self.universe.instruments if item.kind in self.kinds]
+
+    def targets(self) -> list[str]:
+        """Tradable instruments that are universe members in the current month."""
+        members = self.market.members
+        key = (id(members), self.market.session.key if self.market.session else None)
+        if self._targets is not None and self._targets[0] == key:
+            return self._targets[1]
+        chosen = [s for s in self.candidates() if members is None or s in members]
+        self._targets = (key, chosen)
+        return chosen
 
     # --- lifecycle hooks used by the runtime -----------------------------------------
     def on_session(self) -> None:
@@ -110,12 +126,15 @@ class Strategy:
     def evaluate(self, now: datetime) -> list[Candidate]:
         self.now = now
         output: list[Candidate] = []
+        end = self.end
+        cooldown = self.cooldown_until
         for symbol in self.targets():
             setup = self.setups.get(symbol)
             if setup is not None and setup.state in {"ORDERED", "OPEN"}:
                 continue
             if setup is None:
-                if self.cooling(symbol):
+                until = cooldown.get(symbol)
+                if until is not None and end < until:
                     continue
                 setup = self.arm(symbol)
                 if setup is None:
@@ -124,7 +143,9 @@ class Strategy:
                 continue
             candidate = self.step(setup)
             if candidate is not None:
-                self.transition(setup, "ORDERED", "confirmed", stop=candidate.stop)
+                self.transition(
+                    setup, "ORDERED", "confirmed", stop=candidate.stop, anchors=dict(setup.anchors)
+                )
                 output.append(candidate)
         return output
 
@@ -203,7 +224,8 @@ class Strategy:
         )
 
     def tick(self, symbol: str) -> float:
-        return self.universe.get(symbol).tick
+        """One price tick in the units of the market this strategy reads."""
+        return self.market.tick(symbol)
 
     def elapsed(self, setup: Setup) -> int:
         return self.minute - setup.armed_minute

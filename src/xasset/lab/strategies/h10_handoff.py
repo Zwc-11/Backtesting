@@ -35,6 +35,12 @@ class ThinSessionHandoff(Strategy):
         notes="Thin-session quotes and trades, exchange calendar and main-session volume.",
     )
     time_exit_minutes = 30
+    levels = {
+        "U": ("asset", "thin-window high U"),
+        "L": ("asset", "thin-window low L"),
+        "low": ("asset", "pullback bar low"),
+        "high": ("asset", "pullback bar high"),
+    }
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         super().__init__(*args, **kwargs)  # type: ignore[arg-type]

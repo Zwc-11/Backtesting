@@ -51,6 +51,10 @@ def center(tape: Tape, start: int, end: int) -> Center | None:
 class RisingCenter(Strategy):
     id = "h07"
     title = "Rising trading center inside narrowing range"
+    levels = {
+        "U": ("asset", "block-3 high U"),
+        "K0": ("asset", "block-3 low K0"),
+    }
     requires = Requirements(
         quotes=True,
         flow=False,

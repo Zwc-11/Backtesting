@@ -158,6 +158,58 @@ table.data tr[aria-selected="true"] td:first-child{box-shadow:inset 3px 0 0 var(
 .run-head p{color:var(--ink-2)}
 .flag{display:inline-block;font-size:12px;border:1px solid var(--amber);border-radius:3px;padding:0 6px;margin-left:6px;color:var(--ink)}
 
+/* Trade inspector ------------------------------------------------------------ */
+.inspector,.explainer{scroll-margin-top:72px;display:grid;gap:14px;background:var(--plate);border:1px solid var(--ink);border-radius:4px;padding:16px 18px 18px}
+.inspector-head{display:flex;justify-content:space-between;align-items:start;gap:16px}
+.inspector-head h2{margin:0}
+.inspector-head p{font-size:13px;margin-top:2px}
+button.plain{border:1px solid var(--rule);background:transparent;border-radius:4px;padding:4px 12px;font-family:var(--narrow);font-weight:500;cursor:pointer}
+button.plain:hover{border-color:var(--ink)}
+.trade-chart{position:relative;min-height:120px}
+.trade-chart svg{display:block;width:100%;height:auto}
+.trade-chart .grid{stroke:var(--rule);stroke-width:1}
+.trade-chart .axis{fill:var(--ink-2);font:500 11px var(--narrow)}
+.trade-chart .panel-label{fill:var(--ink);font:600 12px var(--narrow)}
+.trade-chart .wick{stroke-width:1}
+.trade-chart .up{stroke:var(--green);fill:var(--green)}
+.trade-chart .down{stroke:var(--red);fill:var(--plate)}
+.trade-chart .series{fill:none;stroke:var(--ink);stroke-width:1.4}
+.trade-chart .level{stroke:var(--ink-2);stroke-width:1;stroke-dasharray:4 3}
+.trade-chart .level-label{fill:var(--ink-2);font:500 11px var(--narrow);paint-order:stroke;stroke:var(--plate);stroke-width:3px;stroke-linejoin:round}
+.trade-chart .stop{stroke:var(--red);stroke-width:1.6}
+.trade-chart .target{stroke:var(--green);stroke-width:1.6}
+.trade-chart .trade-label{font:600 11px var(--narrow);paint-order:stroke;stroke:var(--plate);stroke-width:3px;stroke-linejoin:round}
+.trade-chart .stop-label{fill:var(--red)}.trade-chart .target-label{fill:var(--green)}
+.trade-chart .fill-mark{fill:var(--ink);stroke:var(--plate);stroke-width:1.5}
+.trade-chart .exit-mark{fill:var(--plate);stroke:var(--ink);stroke-width:2}
+.trade-chart .event{stroke:var(--track);stroke-width:1;stroke-dasharray:2 3}
+.trade-chart .event-label{fill:var(--ink-2);font:500 11px var(--narrow)}
+.trade-chart .buy{fill:var(--green);opacity:.75}.trade-chart .sell{fill:var(--red);opacity:.75}
+.trade-chart .cursor{stroke:var(--ink);stroke-width:1;opacity:.5}
+.chart-readout{font-size:13px;color:var(--ink-2);min-height:20px;font-variant-numeric:tabular-nums}
+.timeline{list-style:none;margin:0;padding:0;border-top:1px solid var(--rule);font-size:13px}
+.timeline li{display:grid;grid-template-columns:62px 150px minmax(0,1fr);gap:12px;padding:7px 0;border-bottom:1px solid var(--rule)}
+.timeline time{color:var(--ink-2)}
+.timeline .what{font-family:var(--narrow);font-weight:600;display:flex;align-items:center;gap:8px}
+.timeline .detail{min-width:0;overflow-wrap:anywhere;color:var(--ink-2)}
+.timeline .detail b{color:var(--ink);font-weight:500}
+
+/* Strategy explainer ---------------------------------------------------------- */
+.stages{list-style:none;margin:0;padding:0;display:grid;grid-auto-flow:column;grid-auto-columns:minmax(230px,1fr);border:1px solid var(--rule);border-radius:4px;overflow-x:auto}
+.stages>li{padding:14px 16px 16px;border-right:1px solid var(--rule);min-width:0}
+.stages>li:last-child{border-right:0}
+.stages .rail{display:flex;align-items:center;gap:8px;margin:0 -16px 10px 0;font-family:var(--narrow);font-weight:600;font-size:13px;color:var(--ink-2)}
+.stages .rail::after{content:"";flex:1;height:1px;background:var(--track)}
+.stages>li:last-child .rail::after{background:transparent}
+.stages h3{font-family:var(--narrow);font-weight:600;font-size:15px;margin-bottom:6px}
+.stages .label{font-size:12px;color:var(--ink-2);margin:10px 0 2px;font-family:var(--narrow);font-weight:500}
+.stages ul{margin:0;padding-left:16px;font-size:13px;display:grid;gap:3px}
+.stages ul.kills li::marker{color:var(--red)}
+.stages .freeze{font-size:12px;color:var(--ink-2);margin-top:8px;border-left:2px solid var(--amber);padding-left:8px}
+.explainer-examples{display:grid;gap:18px}
+.explainer-examples h3{font-family:var(--narrow);font-weight:600}
+.example-reason{font-size:13px;color:var(--ink-2)}
+
 /* Relationships ------------------------------------------------------------- */
 .filters{display:flex;flex-wrap:wrap;gap:14px}
 .filters label{display:grid;gap:3px;font-size:13px;color:var(--ink-2)}
@@ -209,6 +261,12 @@ footer{max-width:1400px;margin:0 auto;padding:0 var(--gutter) 32px;color:var(--i
   .chart .readout{position:static;display:block;text-align:right;margin-top:4px}
   .board tbody th{padding:0 10px}
   .run-head .switch{width:100%}
+  .stages{grid-auto-flow:row;grid-auto-columns:auto}
+  .stages>li{border-right:0;border-bottom:1px solid var(--rule)}
+  .stages>li:last-child{border-bottom:0}
+  .stages .rail{margin-right:0}
+  .timeline li{grid-template-columns:52px minmax(0,1fr)}
+  .timeline .detail{grid-column:2}
   .switch button{padding:6px 10px}
 }
 @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}

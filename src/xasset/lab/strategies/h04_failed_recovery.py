@@ -29,6 +29,13 @@ class FailedRecovery(Strategy):
     title = "Failed recovery into prior high-volume area"
     direction = -1
     kinds = ("perp",)
+    levels = {
+        "A": ("asset", "volume area bottom A"),
+        "B": ("asset", "volume area top B"),
+        "H0": ("asset", "pre-drop high H0"),
+        "L0": ("asset", "drop low L0"),
+        "Hc": ("asset", "absorption high Hc"),
+    }
     requires = Requirements(
         quotes=True,
         flow=True,

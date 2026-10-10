@@ -44,7 +44,7 @@ def synthetic(days: int, seed: int) -> dict[int, list[FlowBar]]:
     return output
 
 
-def make_runtime() -> Runtime:
+def make_runtime(strategies: list[str] = STRATEGIES) -> Runtime:
     perp = instrument("PERP", kind="perp", shortable=True, breadth_member=False)
     uni = universe(
         SYMBOLS,
@@ -54,16 +54,16 @@ def make_runtime() -> Runtime:
         handoff_calendar="XNYS",
     )
     costs = CostClass(half_spread_bps=1, impact_bps=1, fee_bps=5, evidence="synthetic test costs")
-    bk = book(STRATEGIES, costs={"test": costs}, calibration_sessions=2, minimum_reference=20)
-    runtime = Runtime(bk, uni, [REGISTRY[s] for s in STRATEGIES], RunSettings("trade"))
+    bk = book(strategies, costs={"test": costs}, calibration_sessions=2, minimum_reference=20)
+    runtime = Runtime(bk, uni, [REGISTRY[s] for s in strategies], RunSettings("trade"))
     broker = BarBroker(runtime.accounting, "trade", lambda: None)
     broker.on_cancel = runtime.cancelled
     runtime.broker = broker
     return runtime
 
 
-def replay(data: dict[int, list[FlowBar]]) -> Runtime:
-    runtime = make_runtime()
+def replay(data: dict[int, list[FlowBar]], strategies: list[str] = STRATEGIES) -> Runtime:
+    runtime = make_runtime(strategies)
     for minute in sorted(data):
         runtime.step(DAY + timedelta(minutes=minute + 1), data[minute])
     return runtime
@@ -167,3 +167,42 @@ def test_no_duplicate_orders_and_portfolio_reconciles(baseline: tuple[dict, Runt
     expected_cash = runtime.book.limits.initial_nav + realized - entry_costs
     assert runtime.portfolio.cash == pytest.approx(expected_cash)
     assert runtime.portfolio.nav() == pytest.approx(expected_cash + open_value)
+
+
+MIRRORED = [*STRATEGIES, *(f"{s}m" for s in STRATEGIES)]
+
+
+def test_mirrors_trade_short_and_never_read_the_future() -> None:
+    """Every strategy with its mirror twin: shorts appear and future mutation is inert."""
+    data = synthetic(4, seed=11)
+    original = replay(data, MIRRORED)
+    armed = Counter(e["strategy"] for e in original.ledger.events if e["event"] == "armed")
+    assert sum(n for s, n in armed.items() if s.endswith("m")) > 50
+    shorts = [o for o in original.ledger.orders if o.get("side") == "sell"]
+    assert shorts and all(o["symbol"] == "PERP" for o in shorts)
+    cutoff = 3 * 1440 + 600
+    rng = np.random.default_rng(5)
+    mutated = dict(data)
+    for minute in range(cutoff + 1, max(data) + 1):
+        scale = math.exp(rng.normal(0, 0.03))
+        mutated[minute] = [
+            bar(
+                b.symbol,
+                b.end,
+                b.open * scale,
+                b.high * scale * 1.01,
+                b.low * scale * 0.99,
+                b.close * scale,
+                notional=b.notional * 2,
+                buy=b.notional * 1.9,
+            )
+            for b in data[minute]
+        ]
+    rerun = replay(mutated, MIRRORED)
+    limit = (DAY + timedelta(minutes=cutoff + 1, seconds=30)).isoformat()
+    assert [e for e in rerun.ledger.events if e["at"] <= limit] == [
+        e for e in original.ledger.events if e["at"] <= limit
+    ]
+    assert [o for o in rerun.ledger.orders if o["at"] <= limit] == [
+        o for o in original.ledger.orders if o["at"] <= limit
+    ]

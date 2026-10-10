@@ -17,6 +17,22 @@ import numpy as np
 MAD_TO_SIGMA = 1.4826
 
 
+def median(values: np.ndarray) -> float:
+    """Median of finite values, identical to ``np.median`` but without its overhead.
+
+    Order statistics come from a partial sort; an even count averages the two middle
+    values as (a + b) / 2, exactly as ``np.median`` does.
+    """
+    n = values.size
+    if n == 0:
+        raise ValueError("Median of an empty array")
+    k = n // 2
+    if n % 2:
+        return float(np.partition(values, k)[k])
+    part = np.partition(values, (k - 1, k))
+    return float((part[k - 1] + part[k]) / 2.0)
+
+
 class Calibration:
     def __init__(
         self,
@@ -88,10 +104,10 @@ class Calibration:
         elif kind == "quantile":
             result = float(np.quantile(values, p))
         elif kind == "median":
-            result = float(np.median(values))
+            result = median(values)
         else:
-            center = np.median(values)
-            result = float(MAD_TO_SIGMA * np.median(np.abs(values - center)))
+            center = median(values)
+            result = float(MAD_TO_SIGMA * median(np.abs(values - center)))
         self._cache[key] = result
         return result
 

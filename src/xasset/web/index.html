@@ -88,11 +88,28 @@
   <section id="view-strategies" class="view" aria-labelledby="strategies-title" hidden>
     <div class="head">
       <h1 id="strategies-title">Strategies</h1>
-      <p class="lede">All twenty supplied strategies, where each one can be measured honestly, and what it has done so far: the latest registered replay and the live paper desk.</p>
+      <p class="lede">All twenty supplied strategies and their mirror variants: where each one can be measured honestly, how it decides to enter, and what it has done so far in the latest registered replay and on the live paper desk.</p>
     </div>
     <section aria-labelledby="handbook-title">
       <h2 id="handbook-title">Ten trading strategy specifications</h2>
+      <p class="note">Select a strategy to see, stage by stage, when it enters and what stops it, with a real trade and a real skipped setup from the latest replay.</p>
       <div class="table-wrap"><table class="data" id="handbook"></table></div>
+    </section>
+    <section id="explainer" class="explainer" aria-labelledby="explainer-title" hidden>
+      <div class="inspector-head">
+        <div>
+          <h2 id="explainer-title"></h2>
+          <p id="explainer-subtitle" class="muted"></p>
+        </div>
+        <button type="button" class="plain" id="explainer-close">Close</button>
+      </div>
+      <ol class="stages" id="explainer-stages"></ol>
+      <div class="explainer-examples" id="explainer-examples"></div>
+    </section>
+    <section aria-labelledby="mirrors-title">
+      <h2 id="mirrors-title">Mirror variants</h2>
+      <p class="note">Each handbook rule applied to the inverted price (1/P) with buyer and seller volume exchanged, trading the opposite side on perpetuals. They are new hypotheses, registered and reported separately from the originals.</p>
+      <div class="table-wrap"><table class="data" id="mirrors"></table></div>
     </section>
     <section aria-labelledby="notebook-title">
       <h2 id="notebook-title">Ten experimental trading strategies</h2>
@@ -138,9 +155,39 @@
         <h2>Walk-forward folds</h2>
         <div class="table-wrap"><table class="data" id="run-folds"></table></div>
       </section>
+      <section id="run-diagnostics" class="view" aria-labelledby="run-diagnostics-title" hidden>
+        <div>
+          <h2 id="run-diagnostics-title">Do the entries predict direction?</h2>
+          <p class="note">Price move after each signal in basis points, before any cost and regardless of the exit, next to entries at random times on the same coins and times of day. A real edge shows up here first; it has to exceed the round-trip cost (about 13 to 20 bp on perpetuals) to pay.</p>
+        </div>
+        <div class="table-wrap"><table class="data" id="run-markouts"></table></div>
+        <div>
+          <h2>Results by market regime</h2>
+          <p class="note">The same trades split by what the market (the benchmark) was doing when each decision was made: mean net result per trade in basis points, with the number of trades.</p>
+        </div>
+        <div class="table-wrap"><table class="data" id="run-regimes"></table></div>
+      </section>
       <section aria-labelledby="run-trades-title">
         <h2 id="run-trades-title">Trades</h2>
+        <p class="note" id="run-trades-note"></p>
         <div class="table-wrap tall"><table class="data" id="run-trades"></table></div>
+      </section>
+      <section id="trade-inspector" class="inspector" aria-labelledby="inspector-title" hidden>
+        <div class="inspector-head">
+          <div>
+            <h2 id="inspector-title"></h2>
+            <p id="inspector-subtitle" class="muted"></p>
+          </div>
+          <button type="button" class="plain" id="inspector-close">Close</button>
+        </div>
+        <div class="trade-chart" id="trade-chart"></div>
+        <p class="chart-readout" id="trade-readout" aria-live="polite"></p>
+        <ol class="timeline" id="trade-timeline"></ol>
+      </section>
+      <section id="run-examples" aria-labelledby="run-examples-title" hidden>
+        <h2 id="run-examples-title">Setups that did not enter</h2>
+        <p class="note">A sample of setups that armed but ended without an order, or whose order was refused or cancelled, with the rule that stopped them. Select one to see it on the chart.</p>
+        <div class="table-wrap tall"><table class="data" id="run-examples-table"></table></div>
       </section>
     </div>
   </section>

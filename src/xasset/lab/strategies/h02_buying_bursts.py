@@ -29,6 +29,12 @@ class BuyingBursts(Strategy):
         notes="Aggressor-labelled trades (at least 95% classified) and quote paths.",
     )
     retention = 0.70
+    levels = {
+        "A1": ("asset", "burst 1 start"),
+        "C1": ("asset", "burst 1 end"),
+        "C2": ("asset", "burst 2 end"),
+        "prior_high": ("asset", "high the third burst must beat"),
+    }
     max_pause_blocks = 3
     max_minutes = 20
 
@@ -49,6 +55,11 @@ class BuyingBursts(Strategy):
         tape = self.market.tapes[symbol]
         block = block_at(tape, i)
         if block is None:
+            return None
+        # Necessary parts of the burst rule that need no calibration (sigma2 > 0).
+        if block.signed_flow <= 0 or block.signed_flow / block.notional < 0.20:
+            return None
+        if block.log_return <= 0:
             return None
         sigma2 = self.market.sigma(symbol, 2, i, block.end_mid)
         sigma10 = self.market.sigma(symbol, 10, i, block.end_mid)

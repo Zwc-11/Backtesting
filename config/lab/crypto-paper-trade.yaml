@@ -2,7 +2,7 @@
 # live results with the crypto-archive replay of the same variants.
 id: crypto-paper-trade
 universe: crypto-paper-universe.yaml
-strategies: [h01, h02, h09t, h03, h04, h06, h07, h08, h10]
+strategies: [h01, h01m, h02, h02m, h09t, h09tm, h03, h03m, h04, h04m, h06, h06m, h07, h07m, h08, h08m, h10, h10m]
 costs:
   crypto_spot_major:
     half_spread_bps: 0.5

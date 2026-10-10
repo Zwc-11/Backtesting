@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from xasset.lab.explain import explanation
 from xasset.lab.strategies import REGISTRY
 
 HANDBOOK = "Ten trading strategy specifications (Word)"
@@ -23,7 +24,7 @@ ENTRIES: list[dict[str, Any]] = [
         "idea": "An asset that holds up while the market and most peers fall, then breaks out.",
         "assets": "Single asset vs benchmark and 20+ peers",
         "data": ["1-minute prices", "benchmark", "20+ synchronized peers", "residual model"],
-        "backtest": ["crypto-archive", "us-archive"],
+        "backtest": ["crypto-perp", "us-large", "crypto-archive", "us-archive"],
         "paper": ["crypto-paper"],
     },
     {
@@ -34,7 +35,7 @@ ENTRIES: list[dict[str, Any]] = [
         "idea": "Three two-minute buying bursts that each keep at least 70% of their gain.",
         "assets": "Single asset",
         "data": ["aggressor-labelled trades", "quotes"],
-        "backtest": ["crypto-archive"],
+        "backtest": ["crypto-perp", "crypto-archive"],
         "paper": ["crypto-paper"],
         "note": "US SIP bars carry no buyer/seller labels; equities need a separately "
         "registered tick-rule variant.",
@@ -47,7 +48,7 @@ ENTRIES: list[dict[str, Any]] = [
         "less selling.",
         "assets": "Single asset with market breadth",
         "data": ["aggressor-labelled trades", "quotes", "peer breadth"],
-        "backtest": ["crypto-archive"],
+        "backtest": ["crypto-perp", "crypto-archive"],
         "paper": ["crypto-paper"],
     },
     {
@@ -57,7 +58,7 @@ ENTRIES: list[dict[str, Any]] = [
         "idea": "Short a rebound that stalls in a prior high-volume area despite heavy buying.",
         "assets": "Shortable contract (perpetual)",
         "data": ["trade-price volume profile", "aggressor labels", "quotes", "short access"],
-        "backtest": ["crypto-archive"],
+        "backtest": ["crypto-perp", "crypto-archive"],
         "paper": ["crypto-paper"],
         "note": "Perpetuals only: equity shorts need borrow data the project does not have.",
     },
@@ -81,7 +82,7 @@ ENTRIES: list[dict[str, Any]] = [
         "idea": "Three touches of resistance with less buying each time, then a real break.",
         "assets": "Single asset",
         "data": ["aggressor-labelled trades", "quotes", "seasonal volume"],
-        "backtest": ["crypto-archive"],
+        "backtest": ["crypto-perp", "crypto-archive"],
         "paper": ["crypto-paper"],
     },
     {
@@ -91,9 +92,9 @@ ENTRIES: list[dict[str, Any]] = [
         "idea": "The traded centre (VWAP) rises while the range narrows, then expands upward.",
         "assets": "Single asset",
         "data": ["trade prices and quantities (VWAP)", "quotes"],
-        "backtest": ["crypto-archive"],
+        "backtest": ["crypto-perp", "us-large", "crypto-archive"],
         "paper": ["crypto-paper"],
-        "note": "Excluded from the US book: SIP bars lack trade VWAP.",
+        "note": "US large caps use Alpaca's per-minute trade VWAP; the old SIP store lacked it.",
     },
     {
         "id": "h08",
@@ -102,7 +103,7 @@ ENTRIES: list[dict[str, Any]] = [
         "idea": "A related laggard catches up after its leader moves first.",
         "assets": "Predeclared leader/laggard pairs (multi-asset)",
         "data": ["synchronized quotes for both legs", "60 sessions for the stability screen"],
-        "backtest": ["crypto-archive", "us-archive"],
+        "backtest": ["crypto-perp", "us-large", "crypto-archive", "us-archive"],
         "paper": ["crypto-paper"],
         "note": "US data covers about 50 sessions; the 60-session stability screen means "
         "no US setups can arm yet.",
@@ -128,7 +129,7 @@ ENTRIES: list[dict[str, Any]] = [
         "idea": "Strategy 9 without the spread-comparability rule (trade archives have no quotes).",
         "assets": "Single asset",
         "data": ["aggressor-labelled trades"],
-        "backtest": ["crypto-archive"],
+        "backtest": ["crypto-perp", "crypto-archive"],
         "paper": [],
     },
     {
@@ -138,7 +139,7 @@ ENTRIES: list[dict[str, Any]] = [
         "idea": "A thin-session breakout that survives the main-session volume handoff.",
         "assets": "Single asset with a declared session handoff",
         "data": ["thin-session quotes and trades", "exchange calendar"],
-        "backtest": ["crypto-archive"],
+        "backtest": ["crypto-perp", "crypto-archive"],
         "paper": ["crypto-paper"],
         "note": "Crypto uses the NYSE open as a registered handoff convention. Equities need "
         "pre-market bars; the stored SIP data is regular session only.",
@@ -284,17 +285,62 @@ ENTRIES: list[dict[str, Any]] = [
 NOTEBOOK_IMPLEMENTED = {"n01", "n03", "n04", "n08"}
 
 
-def catalog() -> list[dict[str, Any]]:
+MIRROR_DOC = "Mirror variants (added here; not in either document)"
+MIRROR_IDEAS = {
+    "h01m": "A coin that lags while the market and most peers rally, then breaks down.",
+    "h02m": "Three two-minute selling bursts that each keep at least 70% of their loss.",
+    "h03m": "After a broad breakdown, two bounces that are smaller, shorter and see less buying.",
+    "h04m": "Buy a decline that stalls in a prior high-volume area despite heavy selling.",
+    "h06m": "Repeated tests of support with less selling and shallower bounces, then a breakdown.",
+    "h07m": "A falling trading center inside a narrowing range, then a breakdown.",
+    "h08m": "After a predeclared leader slumps, short the laggard once it starts to follow.",
+    "h09tm": "Buying bursts whose rises keep shrinking and fade faster each time.",
+    "h10m": "A thin-session breakdown before the US open that survives the opening volume.",
+}
+
+
+def mirror_entries() -> list[dict[str, Any]]:
+    """One entry per mirrored handbook strategy (ID suffix "m")."""
     output = []
     for entry in ENTRIES:
+        sid = f"{entry['id']}m"
+        backtest = [b for b in entry.get("backtest", []) if b == "crypto-perp"]
+        if sid not in REGISTRY or sid not in MIRROR_IDEAS or not backtest:
+            continue
+        output.append(
+            {
+                "id": sid,
+                "doc": MIRROR_DOC,
+                "number": entry.get("number"),
+                "mirror_of": entry["id"],
+                "idea": MIRROR_IDEAS[sid],
+                "assets": "Perpetual contracts (short side)"
+                if REGISTRY[sid].real_direction < 0  # type: ignore[attr-defined]
+                else "Any listed contract (long side)",
+                "data": list(entry.get("data", [])),
+                "backtest": backtest,
+                "paper": [],
+                "note": "The same rule on the inverted price 1/P with buyer and seller volume "
+                "exchanged; trades the opposite side. Registered separately.",
+            }
+        )
+    return output
+
+
+def catalog() -> list[dict[str, Any]]:
+    output = []
+    for entry in [*ENTRIES, *mirror_entries()]:
         implemented = entry["id"] in REGISTRY or entry["id"] in NOTEBOOK_IMPLEMENTED
         item = dict(entry)
         item["implemented"] = implemented
         if entry["id"] in REGISTRY:
             cls = REGISTRY[entry["id"]]
             item["title"] = cls.title
-            item["direction"] = "short" if cls.direction < 0 else "long"
+            side = getattr(cls, "real_direction", cls.direction)
+            item["direction"] = "short" if side < 0 else "long"
             item["time_exit_minutes"] = cls.time_exit_minutes
+            item["explain"] = explanation(entry["id"])
+            item["levels"] = {k: {"series": v[0], "label": v[1]} for k, v in cls.levels.items()}
         if item.get("backtest") and item.get("paper"):
             item["mode"] = "backtest + paper"
         elif item.get("paper"):

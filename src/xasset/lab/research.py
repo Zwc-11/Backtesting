@@ -20,7 +20,10 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any, Literal
 
+import polars as pl
+
 from xasset.lab.backtest import basis_for, replay
+from xasset.lab.diagnostics import HORIZONS, markouts, regimes
 from xasset.lab.evaluate import (
     calendar_days,
     daily_pnl,
@@ -30,11 +33,11 @@ from xasset.lab.evaluate import (
     nav_daily,
     trade_summary,
 )
-from xasset.lab.ledger import trade_json
+from xasset.lab.ledger import CompactLedger, trade_json
 from xasset.lab.runtime import RunSettings
 from xasset.lab.strategies import REGISTRY
 from xasset.lab.universe import Book, Universe, load_book
-from xasset.store.writer import write_json
+from xasset.store.writer import atomic_path, write_json, writer_lock
 
 Phase = Literal["discovery", "holdout"]
 
@@ -80,6 +83,14 @@ class Registration:
             "holdout_start": self.holdout_start.isoformat(),
             "registered_at": self.registered_at.isoformat(),
         }
+
+
+CONTEXT_KEYS = ("market_60m", "market_240m", "market_day", "market_vol_ratio", "breadth_up_60m")
+
+
+def run_folder(root: Path, run_id: str) -> Path:
+    """Trades, timelines and examples of a run (beside ``runs/<run_id>.json``)."""
+    return root / "lab" / "runs" / run_id
 
 
 def registry_path(root: Path, book: str) -> Path:
@@ -159,10 +170,42 @@ def scenario(
     settings: RunSettings,
     report_from: datetime,
 ) -> dict[str, Any]:
-    result = replay(root, book, universe, start, end, settings)
+    compact = CompactLedger()
+    result = replay(root, book, universe, start, end, settings, ledger=compact)
     runtime = result.runtime
     ledger = runtime.ledger
     report_trades = [t for t in ledger.trades if t.entry_time >= report_from]
+    keep_timelines = settings.multiplier == 1 and settings.delay_bars == 0
+    rows = []
+    for trade in report_trades:
+        row = trade_json(trade)
+        trail = compact.timelines.get(trade.setup, [])
+        context: dict[str, Any] = next((e["detail"] for e in trail if e["event"] == "context"), {})
+        for name in CONTEXT_KEYS:
+            row[name] = context.get(name)
+        row["timeline"] = json.dumps(trail, default=str) if keep_timelines else None
+        rows.append(row)
+    examples: dict[str, list[dict[str, Any]]] = {}
+    if keep_timelines:
+        traded = {t.setup for t in report_trades}
+        for (strategy_id, reason), trails in sorted(compact.samples.items()):
+            for trail in trails:
+                if trail and trail[0]["at"] >= report_from.isoformat():
+                    examples.setdefault(strategy_id, []).append(
+                        {"outcome": "expired", "reason": reason, "timeline": trail}
+                    )
+        unfilled: dict[tuple[str, str], int] = {}
+        for setup_id, trail in compact.timelines.items():
+            last = trail[-1]
+            if setup_id in traded or last["event"] not in {"rejected", "cancelled"}:
+                continue
+            slot = (str(last["strategy"]), str(last["detail"].get("reason")))
+            if unfilled.get(slot, 0) >= 3 or trail[0]["at"] < report_from.isoformat():
+                continue
+            unfilled[slot] = unfilled.get(slot, 0) + 1
+            examples.setdefault(slot[0], []).append(
+                {"outcome": last["event"], "reason": slot[1], "timeline": trail}
+            )
     days = calendar_days(report_from, end)
     strategies: dict[str, Any] = {}
     daily_series: dict[str, list[float]] = {}
@@ -194,7 +237,8 @@ def scenario(
             ],
             "episodes14": episodes(marks, base, report_from),
         },
-        "trades": [trade_json(t) for t in report_trades],
+        "trades": rows,
+        "examples": examples,
     }
 
 
@@ -278,6 +322,42 @@ def run(
                     for name, s in settings.items()
                 }
                 results = {name: future.result() for name, future in futures.items()}
+        # Trades (with timelines) and examples go beside the summary, which stays small.
+        folder = run_folder(root, run_id)
+        frames = []
+        for name, result in results.items():
+            trades = result.pop("trades")
+            result["trade_count"] = len(trades)
+            if trades:
+                frames.append(
+                    pl.DataFrame(trades, infer_schema_length=None).with_columns(
+                        pl.lit(name).alias("scenario")
+                    )
+                )
+        examples = json.loads(json.dumps(results["base"].pop("examples", {}), default=str))
+        for result in results.values():
+            result.pop("examples", None)
+        with writer_lock(root / "lab"):
+            if frames:
+                with atomic_path(folder / "trades.parquet") as temporary:
+                    pl.concat(frames, how="diagonal_relaxed").write_parquet(temporary)
+            write_json(folder / "examples.json", examples)
+        output["trades_file"] = f"{run_id}/trades.parquet"
+        base_trades = [
+            {k: v for k, v in row.items() if k != "timeline"}
+            for row in (
+                pl.read_parquet(folder / "trades.parquet")
+                .filter(pl.col("scenario") == "base")
+                .to_dicts()
+                if frames
+                else []
+            )
+        ]
+        output["diagnostics"] = {
+            "markouts": markouts(root, universe, base_trades, report_from, replay_end),
+            "regimes": regimes(base_trades),
+            "horizons_minutes": list(HORIZONS),
+        }
         output["scenarios"] = results
         output["status"] = "completed"
     except Exception as exc:  # Persist failed attempts; they count as attempts.
